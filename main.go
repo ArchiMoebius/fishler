@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/ArchiMoebius/fishler/shim"
 	"github.com/docker/docker/api/types"
@@ -35,6 +37,13 @@ func main() {
 		}
 		hostCfg := &container.HostConfig{
 			AutoRemove: true,
+			//ReadonlyRootfs: true,
+			NetworkMode:   "none",
+			DNS:           []string{"127.0.0.1"},
+			DNSSearch:     []string{"local"},
+			Privileged:    false,
+			ShmSize:       4096,
+			ReadonlyPaths: []string{"/bin", "/dev", "/etc", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var", "/root", "/tmp"},
 		}
 		networkCfg := &network.NetworkingConfig{}
 		status, cleanup, err := dockerRun(createCfg, hostCfg, networkCfg, sess)
@@ -111,8 +120,9 @@ func dockerRun(createCfg *container.Config, hostCfg *container.HostConfig, netwo
 	}
 
 	outputErr := make(chan error)
-
-	logfile := "/tmp/fishler.log"
+	datetime := strings.ReplaceAll(strings.ReplaceAll(fmt.Sprintf("%v", time.Now().Format(time.RFC3339)), ":", ""), "-", "")
+	ipaddr := strings.Split(strings.Replace(sess.RemoteAddr().String(), ".", "-", -1), ":")[0]
+	logfile := fmt.Sprintf("/tmp/fishler_%s_%s_%s.log", res.ID, datetime, ipaddr)
 	// open file read/write | create if not exist | clear file at open if exists
 	f, _ := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 
