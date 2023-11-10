@@ -172,6 +172,7 @@ func (sess *session) Context() glssh.Context {
 }
 
 func (sess *session) Exit(code int) error {
+	// _, _ = sess.Channel.Write([]byte("k, bye\n\n"))
 	sess.Lock()
 	defer sess.Unlock()
 	if sess.exited {
