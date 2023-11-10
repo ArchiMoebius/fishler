@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 )
 
 func GetPasswdBuffer(username string) ([]byte, error) {
@@ -114,14 +113,14 @@ nobody:x:65534:65534:nobody:/:/sbin/nologin%s`, extra_user),
 			Size: int64(len(file.Body)),
 		}
 		if err := tw.WriteHeader(hdr); err != nil {
-			log.Fatal(err)
+			Logger.Error(err)
 		}
 		if _, err := tw.Write([]byte(file.Body)); err != nil {
-			log.Fatal(err)
+			Logger.Error(err)
 		}
 	}
 	if err := tw.Close(); err != nil {
-		log.Fatal(err)
+		Logger.Error(err)
 	}
 
 	return io.ReadAll(&buf)

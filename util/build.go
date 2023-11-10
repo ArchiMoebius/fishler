@@ -4,21 +4,26 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
-	"log"
 	"os"
+	"path/filepath"
 
+	"github.com/ArchiMoebius/fishler/cli/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
-func buildImage(client *client.Client, tags []string, dockerfile string) error {
+func buildImage(client *client.Client, tags []string, dockerBasepath string) error {
 	ctx := context.Background()
 
 	// Create a buffer
 	buf := new(bytes.Buffer)
 	tw := tar.NewWriter(buf)
 	defer tw.Close()
+
+	dockerfile := fmt.Sprintf("%s/Dockerfile", dockerBasepath)
+	docker_rootfs := fmt.Sprintf("%s/rootfs/", dockerBasepath)
 
 	// Create a filereader
 	dockerFileReader, err := os.Open(dockerfile)
@@ -50,54 +55,48 @@ func buildImage(client *client.Client, tags []string, dockerfile string) error {
 		return err
 	}
 
-	var files = []struct {
-		Name, Body string
-	}{
-		{
-			"bash",
-			`#!/bin/ash
-
-if [ -z "$1" ]; then
-    /bin/ash -i
-else
-    /bin/ash -c "$@"
-    sleep 5
-fi`}, {
-			"fixme",
-			`#!/bin/ash
-
-chmod 0644 /etc/group
-chmod 0644 /etc/passwd
-touch -r /etc/shadow /etc/passwd /etc/group
-
-rm /.dockerenv || echo ""
-
-if [ "$1" == "root" ]; then
-    echo ""
-else
-    chown 1000:1000 /home/*
-fi
-
-unlink $0
-`,
-		},
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
 	}
 
-	for _, file := range files {
+	os.Chdir(docker_rootfs)
+
+	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		filedata, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
 		hdr := &tar.Header{
-			Name: file.Name,
-			Mode: 0600,
-			Size: int64(len(file.Body)),
+			Name: fmt.Sprintf("/%s", path),
+			Mode: int64(info.Mode()),
+			Size: info.Size(),
 		}
 		if err := tw.WriteHeader(hdr); err != nil {
-			log.Fatal(err)
+			return err
 		}
-		if _, err := tw.Write([]byte(file.Body)); err != nil {
-			log.Fatal(err)
+		if _, err := tw.Write(filedata); err != nil {
+			return err
 		}
+
+		return nil
+	})
+	if err != nil {
+		return err
 	}
+	os.Chdir(cwd)
 
 	dockerFileTarReader := bytes.NewReader(buf.Bytes())
+	labels := make(map[string]string)
+	labels[config.GlobalConfig.DockerImagename] = "latest"
 
 	// Define the build options to use for the file
 	// https://godoc.org/github.com/docker/docker/api/types#ImageBuildOptions
@@ -106,9 +105,10 @@ unlink $0
 		Dockerfile:     dockerfile,
 		Remove:         true,
 		Tags:           tags,
-		Version:        "2", //buildkit please
-		SuppressOutput: true,
+		Version:        types.BuilderBuildKit,
+		SuppressOutput: false,
 		NoCache:        true,
+		Labels:         labels,
 	}
 
 	// Build the actual image
@@ -132,12 +132,15 @@ unlink $0
 	return nil
 }
 
-func BuildFishler(client *client.Client, ctx context.Context) error {
-
-	_, _, err := client.ImageInspectWithRaw(ctx, "fishler")
+func BuildFishler(client *client.Client, ctx context.Context, forceBuild bool) error {
+	images, err := GetDockerImage(client, ctx)
 
 	if err != nil {
-		return buildImage(client, []string{"fishler"}, "./Dockerfile")
+		return err
+	}
+
+	if len(images) <= 0 || forceBuild {
+		return buildImage(client, []string{config.GlobalConfig.DockerImagename}, config.GlobalConfig.DockerBasepath)
 	}
 
 	return nil

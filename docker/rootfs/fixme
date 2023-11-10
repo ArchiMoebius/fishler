@@ -1,0 +1,15 @@
+#!/bin/ash
+
+chmod 0644 /etc/group
+chmod 0644 /etc/passwd
+touch -r /etc/shadow /etc/passwd /etc/group
+
+rm /.dockerenv || echo ""
+
+if [ "$1" == "root" ]; then
+    echo ""
+else
+    chown 1000:1000 /home/*
+fi
+
+unlink $0
