@@ -4,18 +4,23 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/archimoebius/fishler/cli/config"
+	"github.com/archimoebius/fishler/docker"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
 func buildImage(client *client.Client, tags []string, dockerBasepath string) error {
 	ctx := context.Background()
+
+	var dockerFileContent []byte
 
 	// Create a buffer
 	buf := new(bytes.Buffer)
@@ -29,20 +34,27 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 
 	// Create a filereader
 	dockerFileReader, err := os.Open(dockerfile) // #nosec
+
+	if errors.Is(err, fs.ErrNotExist) {
+		dockerFileContent, err = docker.DockerFolder.ReadFile(dockerfile)
+	}
+
 	if err != nil {
 		return err
 	}
 
-	// Read the actual Dockerfile
-	readDockerFile, err := io.ReadAll(dockerFileReader)
-	if err != nil {
-		return err
+	if len(dockerFileContent) == 0 {
+		// Read the actual Dockerfile
+		dockerFileContent, err = io.ReadAll(dockerFileReader)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Make a TAR header for the file
 	tarHeader := &tar.Header{
 		Name: dockerfile,
-		Size: int64(len(readDockerFile)), // #nosec
+		Size: int64(len(dockerFileContent)), // #nosec
 	}
 
 	// Writes the header described for the TAR file
@@ -52,7 +64,7 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	}
 
 	// Writes the dockerfile data to the TAR file
-	_, err = tw.Write(readDockerFile)
+	_, err = tw.Write(dockerFileContent)
 	if err != nil {
 		return err
 	}
@@ -94,9 +106,11 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 
 		return nil
 	})
+
 	if err != nil {
 		return err
 	}
+
 	err = os.Chdir(cwd)
 	if err != nil {
 		return err

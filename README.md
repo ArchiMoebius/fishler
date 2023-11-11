@@ -20,3 +20,15 @@ A light-weight and easy to deploy SSH honey-pot which leverages Golang and Docke
     <td><img src="https://raw.githubusercontent.com/ArchiMoebius/fishler/main/mkdocs/docs/images/client.svg" alt="client.svg"></td>
   </tr>
 </table>
+
+## Credits
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome. Feel free to check issues page if you want to contribute.
+
+## 📝 License
+
+Copyright ©2023 ArchiMoebius.
+
+This project is [GPL](https://raw.githubusercontent.com/ArchiMoebius/fishler/main/LICENSE) licensed.
