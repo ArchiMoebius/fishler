@@ -10,9 +10,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/archimoebius/fishler/asset"
 	"github.com/archimoebius/fishler/cli/config"
-	"github.com/archimoebius/fishler/docker"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -30,13 +31,13 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	dockerfile := fmt.Sprintf("%s/Dockerfile", dockerBasepath)
 	docker_rootfs := fmt.Sprintf("%s/rootfs/", dockerBasepath)
 
-	Logger.Infof("Building %s with rootfs %s", dockerfile, docker_rootfs)
-
 	// Create a filereader
 	dockerFileReader, err := os.Open(dockerfile) // #nosec
 
 	if errors.Is(err, fs.ErrNotExist) {
-		dockerFileContent, err = docker.DockerFolder.ReadFile(dockerfile)
+		dockerFileContent, err = asset.DockerFolder.ReadFile(dockerfile)
+
+		Logger.Infof("Building %s with embedFS %s", dockerfile, docker_rootfs)
 	}
 
 	if err != nil {
@@ -44,6 +45,8 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	}
 
 	if len(dockerFileContent) == 0 {
+		Logger.Infof("Building %s with rootfs %s", dockerfile, docker_rootfs)
+
 		// Read the actual Dockerfile
 		dockerFileContent, err = io.ReadAll(dockerFileReader)
 		if err != nil {
@@ -74,46 +77,88 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 		return err
 	}
 
+	var has_rootfs = true
+
 	err = os.Chdir(docker_rootfs)
-	if err != nil {
-		return err
-	}
+	if errors.Is(err, fs.ErrNotExist) {
+		has_rootfs = false
 
-	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
+		err = fs.WalkDir(asset.DockerFolder, ".", func(path string, info fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+
+			filedata, err := asset.DockerFolder.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			if !strings.HasPrefix(path, "docker/rootfs/") {
+				return nil
+			}
+
+			hdr := &tar.Header{
+				Name: fmt.Sprintf("/%s", strings.ReplaceAll(path, "docker/rootfs/", "")),
+				Size: int64(len(filedata)),
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return err
+			}
+			if _, err := tw.Write(filedata); err != nil {
+				return err
+			}
+
 			return nil
-		}
 
-		filedata, err := os.ReadFile(path) // #nosec
+		})
+
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+
+	if has_rootfs {
+		err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+
+			filedata, err := os.ReadFile(path) // #nosec
+			if err != nil {
+				return err
+			}
+
+			hdr := &tar.Header{
+				Name: fmt.Sprintf("/%s", path),
+				Mode: int64(info.Mode()),
+				Size: info.Size(),
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return err
+			}
+			if _, err := tw.Write(filedata); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
 		if err != nil {
 			return err
 		}
 
-		hdr := &tar.Header{
-			Name: fmt.Sprintf("/%s", path),
-			Mode: int64(info.Mode()),
-			Size: info.Size(),
-		}
-		if err := tw.WriteHeader(hdr); err != nil {
+		err = os.Chdir(cwd)
+		if err != nil {
 			return err
 		}
-		if _, err := tw.Write(filedata); err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	err = os.Chdir(cwd)
-	if err != nil {
-		return err
 	}
 
 	dockerFileTarReader := bytes.NewReader(buf.Bytes())

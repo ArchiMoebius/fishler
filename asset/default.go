@@ -1,8 +1,10 @@
-package docker
+package asset
 
-import "embed"
+import (
+	"embed"
+)
 
 // content holds the default docker image contents
 //
-//go:embed *
+//go:embed docker
 var DockerFolder embed.FS

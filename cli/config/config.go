@@ -41,7 +41,7 @@ func ReadGlobalConfig() {
 
 var defaultConfig = &config{
 	Config:                     ".fishler",
-	DockerBasepath:             "./docker",
+	DockerBasepath:             "docker",
 	RandomConnectionSleepCount: 0,
 	Debug:                      false,
 	DockerHostname:             "localhost",
