@@ -1,4 +1,4 @@
-VERSION=$(shell cat cli/root.go |grep "const Version ="|cut -d"\"" -f2)
+VERSION=$(shell grep "VERSION = " cli/root.go | cut -d"\"" -f2 | tr -d '\n')
 BUILD=$(shell git rev-parse HEAD)
 BASEDIR=./dist
 DIR=${BASEDIR}/temp
@@ -16,10 +16,10 @@ $(shell mkdir -p ${DIR})
 all: linux freebsd
 # goreleaser build --config .goreleaser.yml --rm-dist --skip-validate
 
-freebsd: lint docs
+freebsd: lint security docs
 	@env CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/fishler-freebsd_amd64 main.go
 
-linux: lint docs
+linux: lint security docs
 	@env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/fishler-linux_amd64 main.go
 
 docs:
@@ -33,9 +33,8 @@ update: tidy
 	@go get -v -d ./...
 	@go get -u all
 
-dep: ## Get the dependencies
+dep: ## Get the dependencies # go get github.com/goreleaser/goreleaser
 	@git config --global url."git@github.com:".insteadOf "https://github.com/"
-	@go get github.com/goreleaser/goreleaser
 	@go install github.com/boumenot/gocover-cobertura@latest
 	@go install github.com/securego/gosec/v2/cmd/gosec@latest
 
