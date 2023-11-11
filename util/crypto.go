@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ArchiMoebius/fishler/cli/config"
+	"github.com/archimoebius/fishler/cli/config"
 	gossh "golang.org/x/crypto/ssh"
 )
 

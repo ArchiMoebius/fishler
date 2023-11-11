@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/ArchiMoebius/fishler/cli"
-	"github.com/ArchiMoebius/fishler/util"
+	"github.com/archimoebius/fishler/cli"
+	"github.com/archimoebius/fishler/util"
 )
 
 func main() {

@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 
-	cmd "github.com/ArchiMoebius/fishler/cli/cmd/image"
-	"github.com/ArchiMoebius/fishler/util"
+	cmd "github.com/archimoebius/fishler/cli/cmd/image"
+	"github.com/archimoebius/fishler/util"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )

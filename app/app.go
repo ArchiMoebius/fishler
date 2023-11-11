@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/ArchiMoebius/fishler/cli/config"
-	"github.com/ArchiMoebius/fishler/shim"
-	"github.com/ArchiMoebius/fishler/util"
+	"github.com/archimoebius/fishler/cli/config"
+	"github.com/archimoebius/fishler/shim"
+	"github.com/archimoebius/fishler/util"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/gliderlabs/ssh"

@@ -3,8 +3,8 @@ package cli
 import (
 	"os"
 
-	"github.com/ArchiMoebius/fishler/cli/cmd"
-	"github.com/ArchiMoebius/fishler/util"
+	"github.com/archimoebius/fishler/cli/cmd"
+	"github.com/archimoebius/fishler/util"
 	"github.com/spf13/cobra"
 )
 

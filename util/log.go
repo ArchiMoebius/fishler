@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ArchiMoebius/fishler/cli/config"
+	"github.com/archimoebius/fishler/cli/config"
 	"github.com/sirupsen/logrus"
 	"github.com/snowzach/rotatefilehook"
 )

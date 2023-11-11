@@ -1,4 +1,4 @@
-module github.com/ArchiMoebius/fishler
+module github.com/archimoebius/fishler
 
 go 1.21
 

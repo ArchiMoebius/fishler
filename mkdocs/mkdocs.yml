@@ -10,7 +10,7 @@ plugins:
   - minify:
       minify_html: true
 
-repo_url: https://github.com/ArchiMoebius/fishler
+repo_url: https://github.com/archimoebius/fishler
 repo_name: Mailpipe
 
 site_name: Mailpipe
@@ -61,7 +61,7 @@ nav:
       - About: "about.md"
   - Setup: "setup.md"
   - Usage: "usage/fishler.md"
-  - Issue Tracker: "https://github.com/ArchiMoebius/fishler/issues"
+  - Issue Tracker: "https://github.com/archimoebius/fishler/issues"
 
 extra_css:
   - stylesheets/extra.css
@@ -75,4 +75,4 @@ extra:
   generator: true
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/ArchiMoebius/fishler
+      link: https://github.com/archimoebius/fishler

@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/ArchiMoebius/fishler/app"
-	"github.com/ArchiMoebius/fishler/cli/config"
-	"github.com/ArchiMoebius/fishler/util"
+	"github.com/archimoebius/fishler/app"
+	"github.com/archimoebius/fishler/cli/config"
+	"github.com/archimoebius/fishler/util"
 	"github.com/leebenson/conform"
 	"github.com/spf13/cobra"
 )

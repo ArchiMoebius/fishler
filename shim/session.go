@@ -7,8 +7,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/ArchiMoebius/fishler/util"
 	"github.com/anmitsu/go-shlex"
+	"github.com/archimoebius/fishler/util"
 	glssh "github.com/gliderlabs/ssh"
 	"github.com/sirupsen/logrus"
 	gossh "golang.org/x/crypto/ssh"

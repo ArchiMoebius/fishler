@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ArchiMoebius/fishler/cli/config"
+	"github.com/archimoebius/fishler/cli/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
