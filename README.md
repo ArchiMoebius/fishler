@@ -11,3 +11,12 @@
 A light-weight and easy to deploy SSH honey-pot which leverages Golang and Docker to expose ephemeral shell sessions.
 
 > 💡 Check the [`documentation`](https://archimoebius.github.io/fishler/) for usage and more information.
+
+## Example Usage
+
+<table stlye="border:0; width: 100%;">
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/ArchiMoebius/fishler/main/mkdocs/docs/images/server.svg" alt="server.svg"></td>
+    <td><img src="https://raw.githubusercontent.com/ArchiMoebius/fishler/main/mkdocs/docs/images/client.svg" alt="client.svg"></td>
+  </tr>
+</table>

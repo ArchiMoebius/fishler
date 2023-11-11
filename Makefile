@@ -4,8 +4,8 @@ BASEDIR=./dist
 DIR=${BASEDIR}/temp
 
 LDFLAGS=-ldflags "-s -w -X main.build=${BUILD} -buildid=${BUILD}"
-GCFLAGS=-gcflags=all=-trimpath=$(shell echo ${HOME})
-ASMFLAGS=-asmflags=all=-trimpath=$(shell echo ${HOME})
+GCFLAGS=-gcflags=all=-trimpath=$(shell pwd)
+ASMFLAGS=-asmflags=all=-trimpath=$(shell pwd)
 
 GOFILES=`go list -buildvcs=false ./...`
 GOFILESNOTEST=`go list -buildvcs=false ./... | grep -v test`
@@ -24,7 +24,7 @@ linux: lint docs
 
 docs:
 	@go run main.go doc
-	mv docs mkdocs/docs/usage/
+	@mv docs mkdocs/docs/usage/
 
 tidy:
 	@go mod tidy
@@ -51,5 +51,6 @@ release:
 
 clean:
 	@rm -rf ${BASEDIR}
+	@rm -rf mkdocs/docs/usage/
 
 .PHONY: all freebsd linux docs submodule tidy update dep lint security test release clean
