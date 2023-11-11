@@ -26,7 +26,11 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 		return err
 	}
 	defer reader.Close()
-	io.Copy(os.Stdout, reader)
+	_, err = io.Copy(os.Stdout, reader)
+
+	if err != nil {
+		return err
+	}
 
 	var dockerFileContent []byte
 

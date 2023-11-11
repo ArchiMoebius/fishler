@@ -46,7 +46,7 @@ var defaultConfig = &config{
 	Debug:                      false,
 	DockerHostname:             "localhost",
 	DockerImagename:            "fishler",
-	PrivateKeyFilepath:         "/opt/fishler/crypto/id_rsa",
+	CryptoBasepath:             "/opt/fishler/crypto/",
 	LogBasepath:                "/var/log/fishler/",
 	DockerMemoryLimit:          8,
 }
@@ -65,7 +65,7 @@ type config struct {
 	DockerMemoryLimit          int      `mapstructure:"docker-memory-limit" structs:"docker-memory-limit" env:"FISHLER_DOCKER_MEMORY_LIMIT"`
 	Volumns                    []string `mapstructure:"volumn" structs:"volumn"`
 	LogBasepath                string   `mapstructure:"log-basepath" structs:"log-basepath" env:"FISHLER_LOG_BASEPATH"`
-	PrivateKeyFilepath         string   `mapstructure:"private-key-filepath" structs:"private-key-filepath" env:"FISHLER_SSH_PRIVATE_KEY_FILEPATH"`
+	CryptoBasepath             string   `mapstructure:"crypto-basepath" structs:"crypto-basepath" env:"FISHLER_CRYPTO_BASEPATH"`
 	DockerHostname             string   `mapstructure:"docker-hostname" structs:"docker-hostname" env:"FISHLER_DOCKER_HOSTNAME"`
 	DockerImagename            string   `mapstructure:"docker-imagename" structs:"docker-imagename" env:"FISHLER_DOCKER_IMAGENAME"`
 	Config                     string   `mapstructure:"config" structs:"config" env:"FISHLER_CONFIG"`
@@ -88,7 +88,7 @@ func cliFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().Int("docker-memory-limit", defaultConfig.DockerMemoryLimit, "The amount of memory (in MB) that each container should get when a user obtains a session")
 
 	rootCmd.PersistentFlags().String("log-basepath", defaultConfig.LogBasepath, "The base filepath where logs will be stored")
-	rootCmd.PersistentFlags().String("private-key-filepath", defaultConfig.PrivateKeyFilepath, "The filepath to a private key for the SSH server")
+	rootCmd.PersistentFlags().String("crypto-basepath", defaultConfig.CryptoBasepath, "The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server")
 	rootCmd.PersistentFlags().String("docker-hostname", defaultConfig.DockerHostname, "The hostname used in the docker container")
 	rootCmd.PersistentFlags().String("docker-imagename", defaultConfig.DockerImagename, "The image user for the docker container")
 	rootCmd.PersistentFlags().String("config", defaultConfig.Config, ".fishler.yaml")

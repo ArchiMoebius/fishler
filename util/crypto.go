@@ -8,16 +8,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"syscall"
 
 	"github.com/archimoebius/fishler/cli/config"
 	gossh "golang.org/x/crypto/ssh"
+	"golang.org/x/term"
 )
 
 func GetKeySigner() (gossh.Signer, error) {
 
 	privatekey, err := GetFishlerPrivateKey()
 	if err != nil {
-		Logger.Errorf("Unable to read or create file %s make sure the directories exist and have the correct permissions", config.GlobalConfig.PrivateKeyFilepath)
+		Logger.Errorf("Unable to read or create file %s make sure the directories exist and have the correct permissions", GetFishlerPrivateKeyPath())
 		Logger.Fatal(err)
 		return nil, err
 	}
@@ -30,15 +33,37 @@ func GetKeySigner() (gossh.Signer, error) {
 
 	signer, err := gossh.ParsePrivateKey(pemBytes)
 	if err != nil {
-		Logger.Fatal(err)
-		return nil, err
+
+		if strings.Contains(err.Error(), "protected") {
+
+			fmt.Printf("\n\n%s Password: ", privatekey)
+
+			bytePassword, err := term.ReadPassword(int(syscall.Stdin))
+			fmt.Printf("\n")
+
+			if err != nil {
+				Logger.Fatal(err)
+				return nil, err
+			}
+
+			signer, err = gossh.ParsePrivateKeyWithPassphrase(pemBytes, bytePassword)
+
+			if err != nil {
+				Logger.Fatal(err)
+				return nil, err
+			}
+		}
 	}
 
 	return signer, nil
 }
 
+func GetFishlerPrivateKeyPath() string {
+	return fmt.Sprintf("%s/id_rsa", config.GlobalConfig.CryptoBasepath)
+}
+
 func GetFishlerPrivateKey() (string, error) {
-	_, err := os.Stat(config.GlobalConfig.PrivateKeyFilepath)
+	_, err := os.Stat(GetFishlerPrivateKeyPath())
 
 	if err != nil {
 
@@ -53,7 +78,7 @@ func GetFishlerPrivateKey() (string, error) {
 		return "", err
 	}
 
-	return config.GlobalConfig.PrivateKeyFilepath, nil
+	return GetFishlerPrivateKeyPath(), nil
 }
 
 func generateKey() error {
@@ -68,7 +93,7 @@ func generateKey() error {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
-	privateKeyFile, err := os.Create(config.GlobalConfig.PrivateKeyFilepath)
+	privateKeyFile, err := os.Create(GetFishlerPrivateKeyPath())
 	if err != nil {
 		return err
 	}
@@ -89,7 +114,7 @@ func generateKey() error {
 		Type:  "RSA PUBLIC KEY",
 		Bytes: x509.MarshalPKCS1PublicKey(publicKey),
 	}
-	publicKeyFile, err := os.Create(fmt.Sprintf("%s.pub", config.GlobalConfig.PrivateKeyFilepath))
+	publicKeyFile, err := os.Create(fmt.Sprintf("%s.pub", GetFishlerPrivateKeyPath()))
 	if err != nil {
 		return err
 	}
