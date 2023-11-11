@@ -45,7 +45,7 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	}
 
 	if len(dockerFileContent) == 0 {
-		Logger.Infof("Building %s with rootfs %s", dockerfile, docker_rootfs)
+		Logger.Infof("Building %s with rootFS %s", dockerfile, docker_rootfs)
 
 		// Read the actual Dockerfile
 		dockerFileContent, err = io.ReadAll(dockerFileReader)
