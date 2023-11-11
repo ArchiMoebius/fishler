@@ -35,11 +35,13 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	}
 
 	exitCode = 255
+	cleanup = func() {}
 
 	res, err := dockerClient.ContainerCreate(ctx, createCfg, hostCfg, networkCfg, nil, fmt.Sprintf("fishler_%s", strings.Split(sess.RemoteAddr().String(), ":")[0]))
 	if err != nil {
 		Logger.Error(err)
-		return
+		err = nil
+		return // only one container per IP address...good or bad?...TODO...
 	}
 
 	profiletarbuffer, err := GetProfileBuffer(sess.User())
