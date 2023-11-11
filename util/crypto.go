@@ -30,7 +30,7 @@ func GetKeySigner() (gossh.Signer, error) {
 
 	signer, err := gossh.ParsePrivateKey(pemBytes)
 	if err != nil {
-		Logger.Error(err)
+		Logger.Fatal(err)
 		return nil, err
 	}
 

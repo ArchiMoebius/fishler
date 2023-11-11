@@ -21,6 +21,13 @@ import (
 func buildImage(client *client.Client, tags []string, dockerBasepath string) error {
 	ctx := context.Background()
 
+	reader, err := client.ImagePull(ctx, "docker.io/library/alpine", types.ImagePullOptions{})
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	io.Copy(os.Stdout, reader)
+
 	var dockerFileContent []byte
 
 	// Create a buffer
@@ -100,8 +107,19 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 				return nil
 			}
 
+			var mode = int64(0o0644)
+
+			if strings.HasSuffix(path, "fixme") {
+				mode = int64(0o0700)
+			}
+
+			if strings.HasSuffix(path, "bash") {
+				mode = int64(0o0755)
+			}
+
 			hdr := &tar.Header{
 				Name: fmt.Sprintf("/%s", strings.ReplaceAll(path, "docker/rootfs/", "")),
+				Mode: mode,
 				Size: int64(len(filedata)),
 			}
 			if err := tw.WriteHeader(hdr); err != nil {
