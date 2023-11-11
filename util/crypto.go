@@ -17,7 +17,8 @@ func GetKeySigner() (gossh.Signer, error) {
 
 	privatekey, err := GetFishlerPrivateKey()
 	if err != nil {
-		Logger.Error(err)
+		Logger.Errorf("Unable to read or create file %s make sure the directories exist and have the correct permissions", config.GlobalConfig.PrivateKeyFilepath)
+		Logger.Fatal(err)
 		return nil, err
 	}
 
@@ -37,10 +38,19 @@ func GetKeySigner() (gossh.Signer, error) {
 }
 
 func GetFishlerPrivateKey() (string, error) {
-	if _, err := os.Stat(config.GlobalConfig.PrivateKeyFilepath); errors.Is(err, os.ErrNotExist) {
-		if err := generateKey(); err != nil {
-			return "", err
+	_, err := os.Stat(config.GlobalConfig.PrivateKeyFilepath)
+
+	if err != nil {
+
+		if errors.Is(err, os.ErrNotExist) {
+			if err = generateKey(); err != nil {
+				return "", err
+			}
 		}
+	}
+
+	if err != nil {
+		return "", err
 	}
 
 	return config.GlobalConfig.PrivateKeyFilepath, nil
