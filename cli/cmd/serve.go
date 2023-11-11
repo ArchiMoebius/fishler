@@ -20,6 +20,10 @@ var ServeCmd = &cobra.Command{
 		config.GlobalConfig.Print()
 		config.SetupAuthentication(cmd)
 
+		if config.GlobalConfig.Debug {
+			util.Logger.SetReportCaller(true)
+		}
+
 		err := app.NewApplication().Start()
 
 		if err != nil {
