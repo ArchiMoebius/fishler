@@ -12,7 +12,24 @@ A light-weight and easy to deploy SSH honey-pot which leverages Golang and Docke
 
 > 💡 Check the [`documentation`](https://archimoebius.github.io/fishler/) for usage and more information.
 
-## Example Usage
+## Quickstart
+
+Get up and running quick like:
+
+```
+go run github.com/archimoebius/fishler@latest serve --any-account --log-basepath /tmp --crypto-basepath /tmp
+```
+
+## Install / Setup
+
+To download fishler and then use it - something like the following will do:
+
+```
+go install github.com/archimoebius/fishler@latest
+fishler serve --any-account --log-basepath /tmp --crypto-basepath /tmp
+```
+
+## Demo
 
 <table stlye="border:0; width: 100%;">
   <tr>
@@ -22,6 +39,15 @@ A light-weight and easy to deploy SSH honey-pot which leverages Golang and Docke
 </table>
 
 ## Credits
+
+Without the shoulders of giants to stand upon - this project wouldn't exist... Thank you for crafting such great libraries!
+
+* [Docker](https://github.com/docker/docker)
+* [Gliderlabs/SSH](https://github.com/gliderlabs/ssh)
+* [Litter](https://github.com/sanity-io/litter)
+* [Logrus](https://github.com/sirupsen/logrus)
+* [Cobra](https://github.com/spf13/cobra)
+* [Viper](https://github.com/spf13/viper)
 
 ## 🤝 Contributing
 
