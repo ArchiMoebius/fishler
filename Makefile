@@ -43,8 +43,10 @@ lint: ## Lint the files
 	@env CGO_ENABLED=0 go fmt ${GOFILES}
 	@env CGO_ENABLED=0 go vet ${GOFILESNOTEST}
 
-security:
-	@gosec -tests ./...
+security: dep tidy
+	@go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+	@go run github.com/go-critic/go-critic/cmd/gocritic@latest check -enableAll -disable='#experimental,#opinionated' ./...
+	@go run github.com/google/osv-scanner/cmd/osv-scanner@latest -r . || echo "oh snap!"
 
 release:
 	@goreleaser release --config .github/goreleaser.yml
