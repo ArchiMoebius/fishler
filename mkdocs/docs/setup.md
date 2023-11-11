@@ -60,17 +60,17 @@ If you want to delay (emulate a busy server) on successful authentication - use 
 If one desired to listen on port 2222, allow any username/password combination, bind-mount (Docker syntax) a volumn of data in - they could:
 
 ```bash
-fisher serve --volumn '/tmp/data/juicy.txt:/juicy.txt:ro' --port 2222 --any-account
+fishler serve --volumn '/tmp/data/juicy.txt:/juicy.txt:ro' --port 2222 --any-account
 ```
 
 If one desired to on a random high port, and log - but not authenticate any users (don't spin up a docker container for a session - ever) they could.
 
 ```bash
-fisher serve --no-account
+fishler serve --no-account
 ```
 
 If one desired to listen on port 2222, allow any username/password combination, and emulate a wonky/loaded server (authentication takes a random number of seconds between 1 and 30) - they could:
 
 ```bash
-fisher serve --port 2222 --any-account --random-sleep-count 30
+fishler serve --port 2222 --any-account --random-sleep-count 30
 ```
