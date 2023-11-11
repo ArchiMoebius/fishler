@@ -39,7 +39,7 @@ var RootImageRemoveCmd = &cobra.Command{
 			return
 		}
 
-		if len(images) <= 0 {
+		if len(images) == 0 {
 			util.Logger.Info("No fishler image's found for removal")
 			return
 		}

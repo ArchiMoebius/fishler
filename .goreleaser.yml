@@ -1,0 +1,85 @@
+project_name: fishler
+report_sizes: true
+
+before:
+  hooks:
+    - go mod download
+    - go mod tidy
+    - go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+    - go run github.com/go-critic/go-critic/cmd/gocritic@latest check -enableAll -disable='#experimental,#opinionated' ./...
+    - go run github.com/google/osv-scanner/cmd/osv-scanner@latest -r .
+    # - go test -race ./...
+
+builds:
+  -
+    id: default
+    main: ./main.go
+    env: [ CGO_ENABLED=0 ]
+    goos: [ linux ]
+    goarch: [ amd64, arm64 ]
+
+upx:
+  -
+    ids: [ default ]
+    enabled: true
+    compress: best
+    lzma: true
+    brute: true
+    goos: [ linux ] # skip non linux as I can't test/verify them
+    goarch: [ amd64, arm64 ]
+
+release:
+  ids: [ default ]
+  draft: true
+  replace_existing_draft: true
+  target_commitish: "{{ .Commit }}"
+  #  discussion_category_name: General
+  prerelease: auto
+  mode: replace
+  header: |
+    ## ⚙️ The `{{ .Tag }}` release
+  footer: |
+    ## Notes
+    
+    > 💡 Check the [`documentation`][https://archimoebius.github.io/fishler/] for usage and more information.
+
+    ## Your help to improve project
+
+    I'd be truly grateful for help with:
+
+    - Creating tests (and/or benchmarks) for code.
+    - Improving existing functions, structs, or tests.
+    - Feature requests with interesting functions that would be good to add.
+
+    Your PRs & issues are welcome! Thanks 😉
+
+  disable: false
+  skip_upload: false
+
+changelog:
+#  use: github
+  sort: asc
+  abbrev: -1
+  filters:
+    exclude: [ "^*.md", "^*.ya?ml" ]
+  groups:
+    - title: Features
+      regexp: ^.*?(F|f)eature.*?$
+      order: 0
+    - title: Bug fixes
+      regexp: ^.*?((B|b)ug)|((F|f)ix).*?$
+      order: 1
+    - title: Improvements
+      regexp: ^.*?(I|i)mprove.*?$
+      order: 2
+    - title: Updates
+      regexp: ^.*?(U|u)pdate.*?$
+      order: 3
+    - title: Security issues
+      regexp: ^.*?(S|s)ecurity.*?$
+      order: 4
+    - title: Delete unused or stale
+      regexp: ^.*?((D|d)elete)|((U|u)nused)|((S|s)tale).*?$
+      order: 5
+    - title: Others
+      order: 999

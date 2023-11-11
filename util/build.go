@@ -147,7 +147,7 @@ func BuildFishler(client *client.Client, ctx context.Context, forceBuild bool) e
 		return err
 	}
 
-	if len(images) <= 0 || forceBuild {
+	if len(images) == 0 || forceBuild {
 		return buildImage(client, []string{config.GlobalConfig.DockerImagename}, config.GlobalConfig.DockerBasepath)
 	}
 

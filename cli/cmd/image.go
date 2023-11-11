@@ -33,7 +33,7 @@ var ImageCmd = &cobra.Command{
 			return
 		}
 
-		if len(images) <= 0 {
+		if len(images) == 0 {
 			util.Logger.Info("No image's found - try building one!")
 		}
 

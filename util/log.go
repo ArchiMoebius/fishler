@@ -55,7 +55,7 @@ func NewLogger() *logrus.Logger {
 		Filename:   SystemLogFilepath,
 		MaxSize:    50, // megabytes
 		MaxBackups: 3,
-		MaxAge:     28, //days
+		MaxAge:     28, // days
 		Level:      logrus.DebugLevel,
 		Formatter: &logrus.JSONFormatter{
 			TimestampFormat: time.DateTime,

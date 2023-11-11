@@ -168,7 +168,7 @@ func readConfig() (*config, error) {
 	return c, nil
 }
 
-func Authenticate(username string, password string) bool {
+func Authenticate(username, password string) bool {
 	if GlobalConfig.NoAccount {
 		return false
 	}
@@ -213,7 +213,8 @@ func SetupAuthentication(cmd *cobra.Command) {
 		records, err := reader.ReadAll()
 
 		if err != nil {
-			log.Fatal(err)
+			fmt.Print(err)
+			return
 		}
 
 		for idx, row := range records {
@@ -241,7 +242,8 @@ func SetupAuthentication(cmd *cobra.Command) {
 	if passwordFile != "" {
 		file, err := os.Open(passwordFile) // #nosec
 		if err != nil {
-			log.Fatal(err)
+			fmt.Print(err)
+			return
 		}
 		defer file.Close()
 
@@ -253,7 +255,8 @@ func SetupAuthentication(cmd *cobra.Command) {
 		err = scanner.Err()
 
 		if err != nil {
-			log.Fatal(err)
+			fmt.Print(err)
+			return
 		}
 
 		if debug {

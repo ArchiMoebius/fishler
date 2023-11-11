@@ -143,8 +143,8 @@ func (sess *session) Write(p []byte) (n int, err error) {
 		m := len(p)
 		// normalize \n to \r\n when pty is accepted.
 		// this is a hardcoded shortcut since we don't support terminal modes.
-		p = bytes.Replace(p, []byte{'\n'}, []byte{'\r', '\n'}, -1)
-		p = bytes.Replace(p, []byte{'\r', '\r', '\n'}, []byte{'\r', '\n'}, -1)
+		p = bytes.ReplaceAll(p, []byte{'\n'}, []byte{'\r', '\n'})
+		p = bytes.ReplaceAll(p, []byte{'\r', '\r', '\n'}, []byte{'\r', '\n'})
 		n, err = sess.Channel.Write(p)
 		if n > m {
 			n = m
@@ -174,7 +174,6 @@ func (sess *session) Context() glssh.Context {
 }
 
 func (sess *session) Exit(code int) error {
-	// _, _ = sess.Channel.Write([]byte("k, bye\n\n"))
 	sess.Lock()
 	defer sess.Unlock()
 	if sess.exited {
@@ -394,10 +393,8 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			sess.Lock()
 			if sess.sigCh != nil {
 				sess.sigCh <- glssh.Signal(payload.Signal)
-			} else {
-				if len(sess.sigBuf) < maxSigBufSize {
-					sess.sigBuf = append(sess.sigBuf, glssh.Signal(payload.Signal))
-				}
+			} else if len(sess.sigBuf) < maxSigBufSize {
+				sess.sigBuf = append(sess.sigBuf, glssh.Signal(payload.Signal))
 			}
 			sess.Unlock()
 		case "pty-req":
