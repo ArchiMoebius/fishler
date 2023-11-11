@@ -1,0 +1,78 @@
+markdown_extensions:
+  - meta
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+
+plugins:
+  - search:
+      separator: '[\s\-\.]+'
+  - minify:
+      minify_html: true
+
+repo_url: https://github.com/ArchiMoebius/fishler
+repo_name: Mailpipe
+
+site_name: Mailpipe
+site_url: https://archimoebius.github.io/fishler
+site_description: "Catch those shell larpers"
+site_author: ArchiMoebius
+copyright: Copyright &copy; 2021 - 2023 ArchiMoebius
+
+theme:
+  include_search_page: false
+  search_index_only: true
+  name: material
+  custom_dir: overrides
+  favicon: images/logo.png
+  logo: images/logo.png
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.tracking
+    - navigation.indexes # this or toc
+    #- toc.integrate # seems busted when a plugin is parsing and generating its own markdown?...
+    - navigation.top
+  palette:
+    - scheme: slate
+      primary: grey
+      accent: grey
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - scheme: default
+      primary: grey
+      accent: grey
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  static_templates:
+    - 404.html # https://squidfunk.github.io/mkdocs-material/customization/?h=404#setup-and-theme-structure
+
+nav:
+  - Home:
+      - Index: "index.md"
+      - About: "about.md"
+  - Setup: "setup.md"
+  - Usage: "usage/fishler.md"
+  - Issue Tracker: "https://github.com/ArchiMoebius/fishler/issues"
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/tablesort/5.2.1/tablesort.min.js
+  - javascripts/tablesort.js
+
+extra:
+  version: 2023.11.11
+  generator: true
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ArchiMoebius/fishler

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ArchiMoebius/fishler/cli/config"
 	"github.com/sirupsen/logrus"
 	"github.com/snowzach/rotatefilehook"
 )
@@ -68,7 +69,7 @@ func NewLogger() *logrus.Logger {
 
 	logger.SetOutput(io.Discard) // Send all logs to nowhere by default
 	logger.SetLevel(logrus.DebugLevel)
-	logger.ReportCaller = true
+	logger.ReportCaller = config.GlobalConfig.Debug
 
 	logger.AddHook(&FormatterHook{ // Send logs with level higher than info to systemlog
 		Writer: systemlog,

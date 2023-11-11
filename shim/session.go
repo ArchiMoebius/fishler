@@ -10,6 +10,7 @@ import (
 	"github.com/ArchiMoebius/fishler/util"
 	"github.com/anmitsu/go-shlex"
 	glssh "github.com/gliderlabs/ssh"
+	"github.com/sirupsen/logrus"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -264,6 +265,11 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 					util.Logger.Error(err)
 				}
 
+				util.Logger.WithFields(logrus.Fields{
+					"address": sess.RemoteAddr().String(),
+					"command": payload.Value,
+				}).Info("session shell event")
+
 				sess.rawCmd = payload.Value
 			}
 
@@ -305,6 +311,11 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			}
 
 			sess.subsystem = payload.Value
+
+			util.Logger.WithFields(logrus.Fields{
+				"address":   sess.RemoteAddr().String(),
+				"subsystem": payload.Value,
+			}).Info("exit event")
 
 			// If there's a session policy callback, we need to confirm before
 			// accepting the session.
@@ -360,7 +371,14 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 				util.Logger.Error(err)
 			}
 
-			sess.env = append(sess.env, fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+			envkv := fmt.Sprintf("%s=%s", kv.Key, kv.Value)
+
+			util.Logger.WithFields(logrus.Fields{
+				"address": sess.RemoteAddr().String(),
+				"kv":      envkv,
+			}).Info("session env event")
+
+			sess.env = append(sess.env, envkv)
 			err = req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
