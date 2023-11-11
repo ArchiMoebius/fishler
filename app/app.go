@@ -41,12 +41,13 @@ func (a *app) Start() error {
 				min := 1.0
 				max := float64(config.GlobalConfig.RandomConnectionSleepCount)
 
-				time.Sleep(time.Duration((min + rand.Float64()*(max-min)) * float64(time.Second)))
+				time.Sleep(time.Duration((min + rand.Float64()*(max-min)) * float64(time.Second))) // #nosec
 			}
 
 			authenticated := config.Authenticate(ctx.User(), password)
 
 			util.Logger.WithFields(logrus.Fields{
+				"address":  ctx.RemoteAddr().String(),
 				"username": ctx.User(),
 				"password": password,
 				"success":  authenticated,
@@ -56,6 +57,17 @@ func (a *app) Start() error {
 		},
 		Handler: func(sess ssh.Session) {
 			_, _, isTty := sess.Pty()
+
+			util.Logger.WithFields(logrus.Fields{
+				"address":     sess.RemoteAddr().String(),
+				"username":    sess.User(),
+				"command":     sess.RawCommand(),
+				"environment": sess.Environ(),
+				"version":     sess.Context().ClientVersion(),
+				"pty":         isTty,
+				"publickey":   sess.PublicKey(),
+				"subsystem":   sess.Subsystem(),
+			}).Info("session event")
 
 			var workingDir = fmt.Sprintf("/home/%s", sess.User())
 
@@ -69,7 +81,7 @@ func (a *app) Start() error {
 				User:         sess.User(),
 				Cmd:          sess.Command(),
 				Env:          sess.Environ(),
-				Tty:          isTty,
+				Tty:          true,
 				OpenStdin:    true,
 				AttachStderr: true,
 				AttachStdin:  true,
@@ -78,7 +90,7 @@ func (a *app) Start() error {
 				WorkingDir:   workingDir,
 			}
 			hostCfg := &container.HostConfig{
-				AutoRemove:    true,
+				AutoRemove:    false,
 				NetworkMode:   "none",
 				DNS:           []string{"127.0.0.1"},
 				DNSSearch:     []string{"local"},
@@ -101,7 +113,12 @@ func (a *app) Start() error {
 			if err != nil {
 				util.Logger.Error(err)
 			}
-			sess.Exit(int(status))
+
+			err = sess.Exit(int(status))
+
+			if err != nil {
+				util.Logger.Error(err)
+			}
 		},
 	}
 

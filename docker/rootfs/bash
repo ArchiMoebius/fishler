@@ -3,5 +3,6 @@
 if [ -z "$1" ]; then
     /bin/ash -i
 else
+    sleep 3
     /bin/ash -c "$@"
 fi

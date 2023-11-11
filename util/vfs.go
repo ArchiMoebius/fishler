@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-func GetPasswdBuffer(username string) ([]byte, error) {
+func GetProfileBuffer(username string) ([]byte, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 

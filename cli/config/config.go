@@ -199,7 +199,7 @@ func SetupAuthentication(cmd *cobra.Command) {
 	password, _ := cmd.Flags().GetString("password")
 
 	if accountFile != "" {
-		file, err := os.Open(accountFile)
+		file, err := os.Open(accountFile) // #nosec
 
 		// Checks for the error
 		if err != nil {
@@ -239,7 +239,7 @@ func SetupAuthentication(cmd *cobra.Command) {
 	}
 
 	if passwordFile != "" {
-		file, err := os.Open(passwordFile)
+		file, err := os.Open(passwordFile) // #nosec
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -21,7 +21,7 @@ func GetKeySigner() (gossh.Signer, error) {
 		return nil, err
 	}
 
-	pemBytes, err := os.ReadFile(privatekey)
+	pemBytes, err := os.ReadFile(privatekey) // #nosec
 	if err != nil {
 		Logger.Error(err)
 		return nil, err
@@ -50,7 +50,6 @@ func generateKey() error {
 	// Generate a new RSA private key with 2048 bits
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		Logger.Error(err)
 		return err
 	}
 
@@ -61,11 +60,16 @@ func generateKey() error {
 	}
 	privateKeyFile, err := os.Create(config.GlobalConfig.PrivateKeyFilepath)
 	if err != nil {
-		Logger.Error(err)
 		return err
 	}
-	pem.Encode(privateKeyFile, privateKeyPEM)
-	privateKeyFile.Close()
+	err = pem.Encode(privateKeyFile, privateKeyPEM)
+	if err != nil {
+		return err
+	}
+	err = privateKeyFile.Close()
+	if err != nil {
+		return err
+	}
 
 	// Extract the public key from the private key
 	publicKey := &privateKey.PublicKey
@@ -77,11 +81,16 @@ func generateKey() error {
 	}
 	publicKeyFile, err := os.Create(fmt.Sprintf("%s.pub", config.GlobalConfig.PrivateKeyFilepath))
 	if err != nil {
-		Logger.Error(err)
 		return err
 	}
-	pem.Encode(publicKeyFile, publicKeyPEM)
-	publicKeyFile.Close()
+	err = pem.Encode(publicKeyFile, publicKeyPEM)
+	if err != nil {
+		return err
+	}
+	err = publicKeyFile.Close()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

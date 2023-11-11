@@ -13,8 +13,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/gliderlabs/ssh"
+	"github.com/sirupsen/logrus"
 )
 
 func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.HostConfig, networkCfg *network.NetworkingConfig, sess ssh.Session) (exitCode int64, cleanup func(), err error) {
@@ -35,30 +35,20 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	}
 
 	exitCode = 255
-	cleanup = func() {}
 
 	res, err := dockerClient.ContainerCreate(ctx, createCfg, hostCfg, networkCfg, nil, fmt.Sprintf("fishler_%s", strings.Split(sess.RemoteAddr().String(), ":")[0]))
-	if err != nil {
-		return
-	}
-	cleanup = func() {
-		dockerClient.ContainerRemove(ctx, res.ID, types.ContainerRemoveOptions{Force: true})
-	}
-	opts := types.ContainerAttachOptions{
-		Stdin:  createCfg.AttachStdin,
-		Stdout: createCfg.AttachStdout,
-		Stderr: createCfg.AttachStderr,
-		Stream: true,
-	}
-
-	etcpasswdtarbuffer, err := GetPasswdBuffer(sess.User())
-
 	if err != nil {
 		Logger.Error(err)
 		return
 	}
 
-	err = dockerClient.CopyToContainer(ctx, res.ID, "/etc/", bytes.NewReader(etcpasswdtarbuffer), types.CopyToContainerOptions{
+	profiletarbuffer, err := GetProfileBuffer(sess.User())
+
+	if err != nil {
+		Logger.Error(err)
+		return
+	}
+	err = dockerClient.CopyToContainer(ctx, res.ID, "/etc/", bytes.NewReader(profiletarbuffer), types.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
 		CopyUIDGID:                false,
 	})
@@ -75,7 +65,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 
 	execResponse, err := dockerClient.ContainerExecCreate(ctx, res.ID, types.ExecConfig{
 		User:         "root",
-		Tty:          false,
+		Tty:          true,
 		AttachStdin:  false,
 		AttachStderr: false,
 		AttachStdout: false,
@@ -88,80 +78,110 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 
 	execAttachConfig := types.ExecStartCheck{
 		Detach: false,
-		Tty:    createCfg.Tty,
+		Tty:    true,
 	}
 
-	_, err = dockerClient.ContainerExecAttach(ctx, execResponse.ID, execAttachConfig)
+	hijackedResponse, err := dockerClient.ContainerExecAttach(ctx, execResponse.ID, execAttachConfig)
+	if err != nil {
+		Logger.Error(err)
+		return
+	}
+	hijackedResponse.Close()
+
+	stream, err := dockerClient.ContainerAttach(
+		ctx,
+		res.ID,
+		types.ContainerAttachOptions{
+			Stdin:  createCfg.AttachStdin,
+			Stdout: createCfg.AttachStdout,
+			Stderr: createCfg.AttachStderr,
+			Stream: true,
+			Logs:   true,
+		},
+	)
 	if err != nil {
 		Logger.Error(err)
 		return
 	}
 
-	stream, err := dockerClient.ContainerAttach(ctx, res.ID, opts)
+	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.GlobalConfig.LogBasepath), res.ID, sess.RemoteAddr())
+	f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600) // #nosec
+
 	if err != nil {
 		Logger.Error(err)
-		return
 	}
+
 	cleanup = func() {
-		dockerClient.ContainerRemove(ctx, res.ID, types.ContainerRemoveOptions{})
+		err = f.Close()
+
+		if err != nil {
+			Logger.Error(err)
+		}
+
+		err := CleanIfContainerExists(ctx, dockerClient, res.ID)
+
+		if err != nil {
+			Logger.Error(err)
+			return
+		}
 		stream.Close()
 	}
 
-	outputErr := make(chan error)
-
-	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.GlobalConfig.LogBasepath), res.ID, sess.RemoteAddr())
-
-	f, _ := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	mw := io.MultiWriter(sess, f)
-	r, w, _ := os.Pipe()
-
-	//create channel to control exit | will block until all copies are finished
-	exit := make(chan bool)
 
 	go func() {
-		// copy all reads from pipe to multiwriter, which writes to stdout and file
-		_, _ = io.Copy(mw, r)
-		// when r or w is closed copy will finish and true will be sent to channel
-		exit <- true
-	}()
+		// From container to session/logfile - Copy copies from src (sess) to dst (stream.Conn) until either EOF is reached on src or an error occurs.
+		bytes, err := io.Copy(mw, stream.Reader)
 
-	// function to be deferred in main until program exits
-	defer func() {
-		// close writer then block on exit channel | this will let mw finish writing before the program exits
-		_ = w.Close()
-		<-exit
-		// close file after all writes have finished
-		_ = f.Close()
-	}()
-
-	go func() {
-		var err error
-		if createCfg.Tty {
-			_, err = io.Copy(mw, stream.Reader)
-		} else {
-			_, err = stdcopy.StdCopy(mw, sess.Stderr(), stream.Reader)
+		if err != nil {
+			Logger.Error(err)
 		}
-		outputErr <- err
+
+		Logger.WithFields(logrus.Fields{
+			"address": sess.RemoteAddr().String(),
+			"bytes":   ByteCountDecimal(bytes),
+		}).Info("metadata container to session")
 	}()
 
 	go func() {
 		defer stream.CloseWrite()
-		io.Copy(stream.Conn, sess)
+		// From session to container - Copy copies from src (sess) to dst (stream.Conn) until either EOF is reached on src or an error occurs.
+		bytes, err := io.Copy(stream.Conn, sess)
+
+		if err != nil {
+			Logger.Error(err)
+		}
+
+		Logger.WithFields(logrus.Fields{
+			"address": sess.RemoteAddr().String(),
+			"bytes":   ByteCountDecimal(bytes),
+		}).Info("metadata session to container")
 	}()
 
 	if createCfg.Tty {
 		_, winCh, _ := sess.Pty()
 		go func() {
+			var height = 0
+			var width = 0
+
 			for win := range winCh {
+				width = win.Width
+				height = win.Height
+
 				err := dockerClient.ContainerResize(ctx, res.ID, types.ResizeOptions{
-					Height: uint(win.Height),
-					Width:  uint(win.Width),
+					Height: uint(height),
+					Width:  uint(width),
 				})
 				if err != nil {
 					Logger.Error(err)
 					break
 				}
 			}
+
+			Logger.WithFields(logrus.Fields{
+				"address": sess.RemoteAddr().String(),
+				"window":  fmt.Sprintf("%dx%d", width, height),
+			}).Info("window event")
 		}()
 	}
 
@@ -175,13 +195,24 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 		exitCode = result.StatusCode
 	}
 
-	Logger.Infof("Session Exit Code: %d", exitCode)
-
-	err = <-outputErr
-
-	if err != nil {
-		Logger.Error(err)
-	}
+	Logger.WithFields(logrus.Fields{
+		"address":  sess.RemoteAddr().String(),
+		"exitcode": exitCode,
+	}).Info("exit event")
 
 	return
+}
+
+func CleanIfContainerExists(ctx context.Context, client *client.Client, containerID string) error {
+	_, err := client.ContainerInspect(ctx, containerID)
+
+	if err == nil { // container exists
+
+		err = client.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

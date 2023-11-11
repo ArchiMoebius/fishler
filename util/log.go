@@ -41,7 +41,7 @@ func (hook *FormatterHook) Levels() []logrus.Level {
 }
 
 func NewLogger() *logrus.Logger {
-	systemlog, err := os.OpenFile(SystemLogFilepath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0640)
+	systemlog, err := os.OpenFile(SystemLogFilepath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0640) // #nosec
 
 	if err != nil {
 		log.Println("Failed to create logfile" + SystemLogFilepath)
@@ -68,6 +68,7 @@ func NewLogger() *logrus.Logger {
 
 	logger.SetOutput(io.Discard) // Send all logs to nowhere by default
 	logger.SetLevel(logrus.DebugLevel)
+	logger.ReportCaller = true
 
 	logger.AddHook(&FormatterHook{ // Send logs with level higher than info to systemlog
 		Writer: systemlog,
@@ -105,7 +106,7 @@ func NewLogger() *logrus.Logger {
 
 func GetSessionFileName(basepath string, containerID string, sessionRemoteAddress net.Addr) string {
 	datetime := strings.ReplaceAll(strings.ReplaceAll(fmt.Sprintf("%v", time.Now().Format(time.RFC3339)), ":", ""), "-", "")
-	ipaddr := strings.Split(strings.Replace(sessionRemoteAddress.String(), ".", "-", -1), ":")[0]
+	ipaddr := strings.ReplaceAll(strings.ReplaceAll(sessionRemoteAddress.String(), ".", "-"), ":", "_")
 
 	err := os.MkdirAll(basepath, os.ModePerm)
 	if err != nil {

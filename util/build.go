@@ -25,8 +25,10 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	dockerfile := fmt.Sprintf("%s/Dockerfile", dockerBasepath)
 	docker_rootfs := fmt.Sprintf("%s/rootfs/", dockerBasepath)
 
+	Logger.Infof("Building %s with rootfs %s", dockerfile, docker_rootfs)
+
 	// Create a filereader
-	dockerFileReader, err := os.Open(dockerfile)
+	dockerFileReader, err := os.Open(dockerfile) // #nosec
 	if err != nil {
 		return err
 	}
@@ -40,7 +42,7 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	// Make a TAR header for the file
 	tarHeader := &tar.Header{
 		Name: dockerfile,
-		Size: int64(len(readDockerFile)),
+		Size: int64(len(readDockerFile)), // #nosec
 	}
 
 	// Writes the header described for the TAR file
@@ -60,7 +62,10 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 		return err
 	}
 
-	os.Chdir(docker_rootfs)
+	err = os.Chdir(docker_rootfs)
+	if err != nil {
+		return err
+	}
 
 	err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -70,7 +75,7 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 			return nil
 		}
 
-		filedata, err := os.ReadFile(path)
+		filedata, err := os.ReadFile(path) // #nosec
 		if err != nil {
 			return err
 		}
@@ -92,7 +97,10 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 	if err != nil {
 		return err
 	}
-	os.Chdir(cwd)
+	err = os.Chdir(cwd)
+	if err != nil {
+		return err
+	}
 
 	dockerFileTarReader := bytes.NewReader(buf.Bytes())
 	labels := make(map[string]string)
