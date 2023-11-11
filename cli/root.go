@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const VERSION = "2023.11.10"
+const VERSION = "2023.11.11"
 
 var RootCmd = &cobra.Command{
 	Version: VERSION,
@@ -16,6 +16,12 @@ var RootCmd = &cobra.Command{
 	Short:   "SSH to Docker container",
 	Long:    "Leverage SSH and Docker to create containers on-the-fly!",
 	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+
 		version, _ := cmd.Flags().GetBool("version")
 
 		if version {
