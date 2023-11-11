@@ -15,7 +15,7 @@ func GetProfileBuffer(username string) ([]byte, error) {
 	var extra_group = ""
 
 	if username != "root" {
-		extra_user = fmt.Sprintf("\n%s:x:1000:1000:%s:/:/bin/ash\n", username, username)
+		extra_user = fmt.Sprintf("\n%s:x:1000:1000:%s:/home/%s:/bin/ash\n", username, username, username)
 		extra_group = fmt.Sprintf("\n%s:x:1000:\n", username)
 	}
 
@@ -103,7 +103,7 @@ vpopmail:x:89:89::/var/vpopmail:/sbin/nologin
 ntp:x:123:123:NTP:/var/empty:/sbin/nologin
 smmsp:x:209:209:smmsp:/var/spool/mqueue:/sbin/nologin
 guest:x:405:100:guest:/dev/null:/sbin/nologin
-nobody:x:65534:65534:nobody:/home/%s:/sbin/nologin%s`, username, extra_user),
+nobody:x:65534:65534:nobody:/:/sbin/nologin%s`, extra_user),
 		},
 	}
 	for _, file := range files {
