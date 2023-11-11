@@ -98,21 +98,27 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 				return nil
 			}
 
+			if strings.HasSuffix(path, "Dockerfile") {
+				return nil // no need to embed the Dockerfile in the docker image :P
+			}
+
 			filedata, err := asset.DockerFolder.ReadFile(path)
 			if err != nil {
 				return err
 			}
 
 			if !strings.HasPrefix(path, "docker/rootfs/") {
-				return nil
+				return nil // no need to embed anything in the docker image that shouldn't be in the rootfs
 			}
 
 			var mode = int64(0o0644)
 
+			// this script is invoked by root at container creation to make any last second changes to the environment before the user is provided a shell
 			if strings.HasSuffix(path, "fixme") {
 				mode = int64(0o0700)
 			}
 
+			// not really bash :P
 			if strings.HasSuffix(path, "bash") {
 				mode = int64(0o0755)
 			}
