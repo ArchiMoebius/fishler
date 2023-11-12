@@ -43,7 +43,7 @@ func SetLogger(filepath string) *logrus.Logger {
 
 	if err != nil {
 		log.Printf("Failed to create logfile %s\n", filepath)
-		log.Fatal(err)
+		return nil
 	}
 
 	logger := logrus.New()
@@ -61,7 +61,7 @@ func SetLogger(filepath string) *logrus.Logger {
 
 	if err != nil {
 		log.Printf("Failed to create logfile %s\n", filepath)
-		log.Fatal(err)
+		return nil
 	}
 
 	logger.SetOutput(io.Discard) // Send all logs to nowhere by default

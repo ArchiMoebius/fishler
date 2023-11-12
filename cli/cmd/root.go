@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	config "github.com/archimoebius/fishler/cli/config/root"
@@ -28,7 +29,25 @@ var RootCmd = &cobra.Command{
 		CallPersistentPreRun(cmd, args)
 		config.Load()
 
-		util.SetLogger(fmt.Sprintf("%s/system.log", config.Setting.LogBasepath))
+		logger := util.SetLogger(fmt.Sprintf("%s/system.log", config.Setting.LogBasepath))
+
+		if logger == nil {
+			logger := util.SetLogger("./system.log")
+
+			if logger == nil {
+				fmt.Printf("[!] Failed to setup logger - bailing\n")
+				err := cmd.Help()
+
+				if err != nil {
+					log.Fatal(err)
+					os.Exit(1)
+				}
+
+				os.Exit(0)
+			}
+
+			fmt.Printf("[!] Failed to setup default logger - using ./system.log instead\n")
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -41,6 +60,7 @@ var RootCmd = &cobra.Command{
 
 			if err != nil {
 				util.Logger.Error(err)
+				os.Exit(1)
 			}
 
 			os.Exit(0)
@@ -62,7 +82,7 @@ func init() {
 
 	RootCmd.Flags().BoolP("version", "v", false, "Show the version and exit")
 
-	//Initialize the config and panic on failure
+	// Initialize the config and panic on failure
 	if err := config.CommandInit(RootCmd); err != nil {
 		util.Logger.Error(err)
 	}

@@ -15,7 +15,7 @@ import (
 var Setting *setting
 
 var initial = &setting{
-	LogBasepath: "/var/log/fishler/",
+	LogBasepath: "/var/log/fishler",
 	Config:      ".fishler",
 	Debug:       false,
 }

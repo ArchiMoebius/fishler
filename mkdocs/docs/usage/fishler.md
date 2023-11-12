@@ -16,7 +16,7 @@ fishler [flags]
   -c, --config string         .fishler.yaml (default ".fishler")
   -d, --debug                 Output debug information
   -h, --help                  help for fishler
-  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler/")
+  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler")
   -v, --version               Show the version and exit
 ```
 

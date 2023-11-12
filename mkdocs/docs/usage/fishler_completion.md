@@ -19,7 +19,7 @@ See each sub-command's help for details on how to use the generated script.
 ```
   -c, --config string         .fishler.yaml (default ".fishler")
   -d, --debug                 Output debug information
-  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler/")
+  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler")
 ```
 
 ### SEE ALSO

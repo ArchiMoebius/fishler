@@ -30,7 +30,7 @@ fishler completion powershell [flags]
 ```
   -c, --config string         .fishler.yaml (default ".fishler")
   -d, --debug                 Output debug information
-  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler/")
+  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler")
 ```
 
 ### SEE ALSO
