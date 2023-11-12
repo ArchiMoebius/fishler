@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/archimoebius/fishler/asset"
-	"github.com/archimoebius/fishler/cli/config"
+	config "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -191,7 +191,7 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 
 	dockerFileTarReader := bytes.NewReader(buf.Bytes())
 	labels := make(map[string]string)
-	labels[config.GlobalConfig.DockerImagename] = "latest"
+	labels[config.Setting.DockerImagename] = "latest"
 
 	// Define the build options to use for the file
 	// https://godoc.org/github.com/docker/docker/api/types#ImageBuildOptions
@@ -235,7 +235,7 @@ func BuildFishler(client *client.Client, ctx context.Context, forceBuild bool) e
 	}
 
 	if len(images) == 0 || forceBuild {
-		return buildImage(client, []string{config.GlobalConfig.DockerImagename}, config.GlobalConfig.DockerBasepath)
+		return buildImage(client, []string{config.Setting.DockerImagename}, config.Setting.DockerBasepath)
 	}
 
 	return nil

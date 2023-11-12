@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/archimoebius/fishler/cli/config"
+	config "github.com/archimoebius/fishler/cli/config/serve"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
@@ -59,7 +59,7 @@ func GetKeySigner() (gossh.Signer, error) {
 }
 
 func GetFishlerPrivateKeyPath() string {
-	return fmt.Sprintf("%s/id_rsa", config.GlobalConfig.CryptoBasepath)
+	return fmt.Sprintf("%s/id_rsa", config.Setting.CryptoBasepath)
 }
 
 func GetFishlerPrivateKey() (string, error) {

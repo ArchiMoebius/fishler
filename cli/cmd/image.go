@@ -1,9 +1,8 @@
-package cmd
+package cli
 
 import (
 	"context"
 
-	cmd "github.com/archimoebius/fishler/cli/cmd/image"
 	"github.com/archimoebius/fishler/util"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
@@ -13,6 +12,9 @@ var ImageCmd = &cobra.Command{
 	Use:   "image",
 	Short: "Build, list, delete fishler Docker image",
 	Long:  `Manage the fishler images`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		CallPersistentPreRun(cmd, args)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		dockerClient, err := client.NewClientWithOpts(
@@ -45,6 +47,6 @@ var ImageCmd = &cobra.Command{
 }
 
 func init() {
-	ImageCmd.AddCommand(cmd.BuildCmd)
-	ImageCmd.AddCommand(cmd.RootImageRemoveCmd)
+	ImageCmd.AddCommand(BuildCmd)
+	ImageCmd.AddCommand(RootImageRemoveCmd)
 }

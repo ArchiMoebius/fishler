@@ -1,8 +1,11 @@
-package cmd
+package cli
 
 import (
+	"log"
+
 	"github.com/archimoebius/fishler/app"
-	"github.com/archimoebius/fishler/cli/config"
+	rootConfig "github.com/archimoebius/fishler/cli/config/root"
+	config "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/archimoebius/fishler/util"
 	"github.com/leebenson/conform"
 	"github.com/spf13/cobra"
@@ -13,15 +16,15 @@ var ServeCmd = &cobra.Command{
 	Short: "Start an SSH server on --port configured to as desired; serving a docker container on authentication success.",
 	Long:  `Leveraging the goodness of Golang, Docker, and SSH - create a container for any user that authenticates with success to the SSH server - recording the session and credentials used.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		config.ReadGlobalConfig()
+		CallPersistentPreRun(cmd, args)
+		config.Load()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		config.Setting.SetupAuthentication()
 
-		config.GlobalConfig.Print()
-		config.SetupAuthentication(cmd)
-
-		if config.GlobalConfig.Debug {
+		if rootConfig.Setting.Debug {
 			util.Logger.SetReportCaller(true)
+			config.Setting.Print()
 		}
 
 		err := app.NewApplication().Start()
@@ -38,7 +41,7 @@ func init() {
 	conform.AddSanitizer("redact", func(_ string) string { return "*****" })
 
 	// Initialize the config and panic on failure
-	if err := config.ConfigInit(ServeCmd); err != nil {
-		util.Logger.Error(err)
+	if err := config.CommandInit(ServeCmd); err != nil {
+		log.Fatal(err)
 	}
 }

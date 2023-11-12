@@ -13,9 +13,7 @@ import (
 	"github.com/snowzach/rotatefilehook"
 )
 
-const SystemLogFilepath = "/var/log/fishler/system.log"
-
-var Logger *logrus.Logger = NewLogger()
+var Logger *logrus.Logger
 
 // FormatterHook is a hook that writes logs of specified LogLevels with a formatter to specified Writer
 type FormatterHook struct {
@@ -40,18 +38,18 @@ func (hook *FormatterHook) Levels() []logrus.Level {
 	return hook.LogLevels
 }
 
-func NewLogger() *logrus.Logger {
-	systemlog, err := os.OpenFile(SystemLogFilepath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0640) // #nosec
+func SetLogger(filepath string) *logrus.Logger {
+	systemlog, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0640) // #nosec
 
 	if err != nil {
-		log.Println("Failed to create logfile" + SystemLogFilepath)
-		panic(err)
+		log.Printf("Failed to create logfile %s\n", filepath)
+		log.Fatal(err)
 	}
 
 	logger := logrus.New()
 
 	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
-		Filename:   SystemLogFilepath,
+		Filename:   filepath,
 		MaxSize:    50, // megabytes
 		MaxBackups: 3,
 		MaxAge:     28, // days
@@ -62,8 +60,8 @@ func NewLogger() *logrus.Logger {
 	})
 
 	if err != nil {
-		log.Println("Failed to create logfile" + SystemLogFilepath)
-		panic(err)
+		log.Printf("Failed to create logfile %s\n", filepath)
+		log.Fatal(err)
 	}
 
 	logger.SetOutput(io.Discard) // Send all logs to nowhere by default
@@ -101,6 +99,8 @@ func NewLogger() *logrus.Logger {
 	})
 
 	logger.AddHook(rotateFileHook)
+
+	Logger = logger
 
 	return logger
 }

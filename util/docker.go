@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/archimoebius/fishler/cli/config"
+	config "github.com/archimoebius/fishler/cli/config/root"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
@@ -106,7 +106,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 		return
 	}
 
-	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.GlobalConfig.LogBasepath), res.ID, sess.RemoteAddr())
+	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.Setting.LogBasepath), res.ID, sess.RemoteAddr())
 	f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600) // #nosec
 
 	if err != nil {

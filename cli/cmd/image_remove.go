@@ -1,9 +1,8 @@
-package cmd
+package cli
 
 import (
 	"context"
 
-	"github.com/archimoebius/fishler/cli/config"
 	"github.com/archimoebius/fishler/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -15,7 +14,7 @@ var RootImageRemoveCmd = &cobra.Command{
 	Short: "Remove the fishler Docker image",
 	Long:  `If the fishler Docker image is not yet built, build it. Use --force to rebuild.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		config.ReadGlobalConfig()
+		CallPersistentPreRun(cmd, args)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		forceRemove, _ := cmd.Flags().GetBool("force")

@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/archimoebius/fishler/cli/config"
+	config "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/archimoebius/fishler/shim"
 	"github.com/archimoebius/fishler/util"
 	"github.com/docker/docker/api/types/container"
@@ -31,20 +31,20 @@ func NewApplication() Application {
 
 func (a *app) Start() error {
 	s := &ssh.Server{
-		Addr: fmt.Sprintf(":%d", config.GlobalConfig.Port),
+		Addr: fmt.Sprintf("%s:%d", config.Setting.IP, config.Setting.Port),
 		ChannelHandlers: map[string]ssh.ChannelHandler{
 			"session": shim.FishlerSessionHandler,
 		},
 		PasswordHandler: func(ctx ssh.Context, password string) bool {
 
-			if config.GlobalConfig.RandomConnectionSleepCount > 0 {
+			if config.Setting.RandomConnectionSleepCount > 0 {
 				min := 1.0
-				max := float64(config.GlobalConfig.RandomConnectionSleepCount)
+				max := float64(config.Setting.RandomConnectionSleepCount)
 
 				time.Sleep(time.Duration((min + rand.Float64()*(max-min)) * float64(time.Second))) // #nosec
 			}
 
-			authenticated := config.Authenticate(ctx.User(), password)
+			authenticated := config.Setting.Authenticate(ctx.User(), password)
 
 			util.Logger.WithFields(logrus.Fields{
 				"address":  ctx.RemoteAddr().String(),
@@ -76,8 +76,8 @@ func (a *app) Start() error {
 			}
 
 			createCfg := &container.Config{
-				Image:        config.GlobalConfig.DockerImagename,
-				Hostname:     config.GlobalConfig.DockerHostname,
+				Image:        config.Setting.DockerImagename,
+				Hostname:     config.Setting.DockerHostname,
 				User:         sess.User(),
 				Cmd:          sess.Command(),
 				Env:          sess.Environ(),
@@ -98,12 +98,12 @@ func (a *app) Start() error {
 				ShmSize:       4096,
 				ReadonlyPaths: []string{"/bin", "/dev", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var", "/root", "/tmp"},
 				Resources: container.Resources{
-					Memory: 1024 * 1024 * int64(config.GlobalConfig.DockerMemoryLimit),
+					Memory: 1024 * 1024 * int64(config.Setting.DockerMemoryLimit),
 				},
 			}
 
-			if len(config.GlobalConfig.Volumns) > 0 {
-				hostCfg.Binds = config.GlobalConfig.Volumns
+			if len(config.Setting.Volumns) > 0 {
+				hostCfg.Binds = config.Setting.Volumns
 			}
 
 			networkCfg := &network.NetworkingConfig{}
@@ -131,9 +131,9 @@ func (a *app) Start() error {
 
 	addr := s.Addr
 	if addr == "" {
-		addr = ":22"
+		addr = ":2222"
 	}
-	ln, err := net.Listen("tcp", addr)
+	ln, err := net.Listen("tcp4", addr)
 
 	if err != nil {
 		return err

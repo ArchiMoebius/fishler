@@ -1,4 +1,4 @@
-package cmd
+package cli
 
 import (
 	"fmt"
@@ -10,12 +10,15 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-const documentationBasepath = "./docs"
+const documentationBasepath = "docs/"
 
 var DocCmd = &cobra.Command{
 	Use:   "doc",
 	Short: fmt.Sprintf("Build documentation under %s", documentationBasepath),
-	Long:  fmt.Sprintf(`Generate documentation for command line usage under /tmp/fishler%s`, documentationBasepath),
+	Long:  fmt.Sprintf(`Generate documentation for command line usage under %s`, documentationBasepath),
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		CallPersistentPreRun(cmd, args)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := os.MkdirAll(documentationBasepath, os.ModePerm)
 		if err != nil {
