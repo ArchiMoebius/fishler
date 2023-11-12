@@ -54,7 +54,7 @@ func Load() {
 	Setting = &setting{}
 	err := viper.Unmarshal(Setting)
 	if err != nil {
-		fmt.Printf("Failed %v\n", err)
+		fmt.Printf("Failed: %v\n", err)
 		os.Exit(1)
 	}
 }

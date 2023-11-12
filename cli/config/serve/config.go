@@ -63,7 +63,7 @@ type setting struct {
 	passwords                  map[string]bool
 }
 
-func Load() error {
+func Load() {
 	// Priority of configuration options
 	// 1: CLI Parameters
 	// 2: environment
@@ -88,10 +88,9 @@ func Load() error {
 	Setting = &setting{}
 	err := viper.Unmarshal(Setting)
 	if err != nil {
-		return err
+		fmt.Printf("Failed: %v\n", err)
+		os.Exit(1)
 	}
-
-	return nil
 }
 
 // configInit must be called from the packages' init() func
