@@ -14,6 +14,18 @@ A light-weight and easy to deploy SSH honey-pot which leverages Golang and Docke
 
 ## Quickstart
 
+### Setup Golang (version of at least 1.21 required)
+
+Download at least version 1.21 of [`Golang`](https://go.dev/dl/) for example:
+
+```bash
+sudo su -
+wget https://go.dev/dl/go1.21.4.linux-amd64.tar.gz
+rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.4.linux-amd64.tar.gz
+```
+
+### Setup Fishler
+
 Get up and running quick like:
 
 ```
