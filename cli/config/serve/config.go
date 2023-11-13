@@ -29,7 +29,7 @@ var initial = &setting{
 	Port:                       2222,
 	DockerHostname:             "localhost",
 	DockerImagename:            "fishler",
-	CryptoBasepath:             "/opt/fishler/crypto/",
+	CryptoBasepath:             "/opt/fishler/crypto",
 	DockerMemoryLimit:          8,
 	AccountFilepath:            "",
 	PasswordFilepath:           "",

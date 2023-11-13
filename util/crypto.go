@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"syscall"
@@ -59,6 +60,11 @@ func GetKeySigner() (gossh.Signer, error) {
 }
 
 func GetFishlerPrivateKeyPath() string {
+	err := os.MkdirAll(config.Setting.CryptoBasepath, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return fmt.Sprintf("%s/id_rsa", config.Setting.CryptoBasepath)
 }
 

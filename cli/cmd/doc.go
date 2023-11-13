@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 )
@@ -22,7 +21,7 @@ var DocCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := os.MkdirAll(documentationBasepath, os.ModePerm)
 		if err != nil {
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 
 		err = doc.GenMarkdownTree(cmd.Root(), documentationBasepath)

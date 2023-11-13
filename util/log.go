@@ -111,7 +111,7 @@ func GetSessionFileName(basepath string, containerID string, sessionRemoteAddres
 
 	err := os.MkdirAll(basepath, os.ModePerm)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	return fmt.Sprintf("%s/%s_%s_%s.log", basepath, containerID, datetime, ipaddr)
