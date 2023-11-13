@@ -23,12 +23,10 @@ var Setting *setting
 
 // initial settings (defaults)
 var initial = &setting{
-	DockerBasepath:             "docker",
 	RandomConnectionSleepCount: 0,
 	IP:                         "127.0.0.1",
 	Port:                       2222,
 	DockerHostname:             "localhost",
-	DockerImagename:            "fishler",
 	CryptoBasepath:             "/opt/fishler/crypto",
 	DockerMemoryLimit:          8,
 	AccountFilepath:            "",
@@ -48,10 +46,8 @@ type setting struct {
 	Volumns                    []string `mapstructure:"volumn" structs:"volumn"`
 	CryptoBasepath             string   `mapstructure:"crypto-basepath" structs:"crypto-basepath" env:"FISHLER_CRYPTO_BASEPATH"`
 	DockerHostname             string   `mapstructure:"docker-hostname" structs:"docker-hostname" env:"FISHLER_DOCKER_HOSTNAME"`
-	DockerImagename            string   `mapstructure:"docker-imagename" structs:"docker-imagename" env:"FISHLER_DOCKER_IMAGENAME"`
 	Port                       int      `mapstructure:"port" structs:"port" env:"FISHLER_PORT"`
 	IP                         string   `mapstructure:"ip" structs:"ip" env:"FISHLER_IP"`
-	DockerBasepath             string   `mapstructure:"docker-basepath" structs:"docker-basepath" env:"FISHLER_DOCKER_BASEPATH"`
 	RandomConnectionSleepCount int      `mapstructure:"random-sleep-count" structs:"random-sleep-count" env:"FISHLER_SSH_CONNECT_SLEEP_COUNT"`
 	AccountFilepath            string   `mapstructure:"account-file" structs:"account-file" env:"FISHLER_ACCOUNT_FILE"`
 	PasswordFilepath           string   `mapstructure:"password-file" structs:"password-file" env:"FISHLER_PASSWORD_FILE"`
@@ -102,10 +98,8 @@ func CommandInit(command *cobra.Command) error {
 
 	command.PersistentFlags().String("crypto-basepath", initial.CryptoBasepath, "The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server")
 	command.PersistentFlags().String("docker-hostname", initial.DockerHostname, "The hostname used in the docker container")
-	command.PersistentFlags().String("docker-imagename", initial.DockerImagename, "The image user for the docker container")
 	command.PersistentFlags().Int("port", initial.Port, "The port to listen on for SSH connections - if not set, will bind to a random high port")
 	command.PersistentFlags().String("ip", initial.IP, "The IP to listen on for SSH connections - if not set, will bind to 127.0.0.1")
-	command.PersistentFlags().String("docker-basepath", initial.DockerBasepath, "The path to the docker folder ./docker if run from the root of the project")
 	command.PersistentFlags().Int("random-sleep-count", initial.RandomConnectionSleepCount, "If non-zero, sleep this at most this many seconds before allowing authentication to continue")
 
 	command.PersistentFlags().String("account-file", initial.AccountFilepath, "Exclusive: A file with a list of username/password combinations that are valid for the server (new-line delimited) in the form: username password - quote if space is present in either")

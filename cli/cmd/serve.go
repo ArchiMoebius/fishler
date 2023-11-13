@@ -18,15 +18,15 @@ var ServeCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		CallPersistentPreRun(cmd, args)
 		config.Load()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		config.Setting.SetupAuthentication()
 
 		if rootConfig.Setting.Debug {
 			util.Logger.SetReportCaller(true)
 			config.Setting.Print()
 		}
 
+		config.Setting.SetupAuthentication()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
 		err := app.NewApplication().Start()
 
 		if err != nil {

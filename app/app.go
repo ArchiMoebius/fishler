@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	rootConfig "github.com/archimoebius/fishler/cli/config/root"
 	config "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/archimoebius/fishler/shim"
 	"github.com/archimoebius/fishler/util"
@@ -76,7 +77,7 @@ func (a *app) Start() error {
 			}
 
 			createCfg := &container.Config{
-				Image:        config.Setting.DockerImagename,
+				Image:        rootConfig.Setting.DockerImagename,
 				Hostname:     config.Setting.DockerHostname,
 				User:         sess.User(),
 				Cmd:          sess.Command(),

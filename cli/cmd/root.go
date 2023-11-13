@@ -48,12 +48,12 @@ var RootCmd = &cobra.Command{
 
 			fmt.Printf("[!] Failed to setup default logger - using ./system.log instead\n")
 		}
-	},
-	Run: func(cmd *cobra.Command, args []string) {
 
 		if config.Setting.Debug {
 			config.Setting.Print()
 		}
+	},
+	Run: func(cmd *cobra.Command, args []string) {
 
 		if len(args) == 0 {
 			err := cmd.Help()

@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/archimoebius/fishler/asset"
-	config "github.com/archimoebius/fishler/cli/config/serve"
+	config "github.com/archimoebius/fishler/cli/config/root"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -187,6 +187,8 @@ func buildImage(client *client.Client, tags []string, dockerBasepath string) err
 		if err != nil {
 			return err
 		}
+
+		return nil
 	}
 
 	dockerFileTarReader := bytes.NewReader(buf.Bytes())
