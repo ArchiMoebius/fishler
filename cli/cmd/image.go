@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"log"
+	"os"
 
 	"github.com/archimoebius/fishler/util"
 	"github.com/docker/docker/client"
@@ -16,6 +18,13 @@ var ImageCmd = &cobra.Command{
 		CallPersistentPreRun(cmd, args)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+
+		err := cmd.Help()
+
+		if err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
 
 		dockerClient, err := client.NewClientWithOpts(
 			client.FromEnv,

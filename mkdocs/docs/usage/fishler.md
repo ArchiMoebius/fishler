@@ -13,11 +13,13 @@ fishler [flags]
 ### Options
 
 ```
-  -c, --config string         .fishler.yaml (default ".fishler")
-  -d, --debug                 Output debug information
-  -h, --help                  help for fishler
-  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler")
-  -v, --version               Show the version and exit
+  -c, --config string             .fishler.yaml (default ".fishler")
+  -d, --debug                     Output debug information
+      --docker-basepath string    The path to the docker folder ./docker if run from the root of the project (default "docker")
+      --docker-imagename string   The image user for the docker container (default "fishler")
+  -h, --help                      help for fishler
+  -l, --log-basepath string       The base filepath where logs will be stored (default "/var/log/fishler")
+  -v, --version                   Show the version and exit
 ```
 
 ### SEE ALSO

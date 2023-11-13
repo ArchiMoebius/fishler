@@ -17,9 +17,7 @@ fishler serve [flags]
       --account-file string       Exclusive: A file with a list of username/password combinations that are valid for the server (new-line delimited) in the form: username password - quote if space is present in either
       --any-account               Any username/password combination will yield in successful authentication to the server
       --crypto-basepath string    The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server (default "/opt/fishler/crypto")
-      --docker-basepath string    The path to the docker folder ./docker if run from the root of the project (default "docker")
       --docker-hostname string    The hostname used in the docker container (default "localhost")
-      --docker-imagename string   The image user for the docker container (default "fishler")
       --docker-memory-limit int   The amount of memory (in MB) that each container should get when a user obtains a session (default 8)
   -h, --help                      help for serve
       --ip string                 The IP to listen on for SSH connections - if not set, will bind to 127.0.0.1 (default "127.0.0.1")
@@ -34,9 +32,11 @@ fishler serve [flags]
 ### Options inherited from parent commands
 
 ```
-  -c, --config string         .fishler.yaml (default ".fishler")
-  -d, --debug                 Output debug information
-  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler")
+  -c, --config string             .fishler.yaml (default ".fishler")
+  -d, --debug                     Output debug information
+      --docker-basepath string    The path to the docker folder ./docker if run from the root of the project (default "docker")
+      --docker-imagename string   The image user for the docker container (default "fishler")
+  -l, --log-basepath string       The base filepath where logs will be stored (default "/var/log/fishler")
 ```
 
 ### SEE ALSO

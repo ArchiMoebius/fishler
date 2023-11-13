@@ -20,9 +20,11 @@ fishler image build [flags]
 ### Options inherited from parent commands
 
 ```
-  -c, --config string         .fishler.yaml (default ".fishler")
-  -d, --debug                 Output debug information
-  -l, --log-basepath string   The base filepath where logs will be stored (default "/var/log/fishler")
+  -c, --config string             .fishler.yaml (default ".fishler")
+  -d, --debug                     Output debug information
+      --docker-basepath string    The path to the docker folder ./docker if run from the root of the project (default "docker")
+      --docker-imagename string   The image user for the docker container (default "fishler")
+  -l, --log-basepath string       The base filepath where logs will be stored (default "/var/log/fishler")
 ```
 
 ### SEE ALSO
