@@ -16,7 +16,7 @@ fishler serve [flags]
       --account string            Exclusive: An account that is valid (any password) for the server
       --account-file string       Exclusive: A file with a list of username/password combinations that are valid for the server (new-line delimited) in the form: username password - quote if space is present in either
       --any-account               Any username/password combination will yield in successful authentication to the server
-      --crypto-basepath string    The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server (default "/opt/fishler/crypto/")
+      --crypto-basepath string    The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server (default "/opt/fishler/crypto")
       --docker-basepath string    The path to the docker folder ./docker if run from the root of the project (default "docker")
       --docker-hostname string    The hostname used in the docker container (default "localhost")
       --docker-imagename string   The image user for the docker container (default "fishler")
