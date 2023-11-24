@@ -1,4 +1,4 @@
-VERSION=$(shell grep "VERSION = " cli/root.go | cut -d"\"" -f2 | tr -d '\n')
+VERSION=$(shell grep "VERSION = " cli/cmd/root.go | cut -d"\"" -f2 | tr -d '\n')
 BUILD=$(shell git rev-parse HEAD)
 BASEDIR=./dist
 DIR=${BASEDIR}/temp
