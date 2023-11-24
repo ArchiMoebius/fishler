@@ -32,7 +32,8 @@ func NewApplication() Application {
 
 func (a *app) Start() error {
 	s := &ssh.Server{
-		Addr: fmt.Sprintf("%s:%d", config.Setting.IP, config.Setting.Port),
+		Version: config.Setting.Banner,
+		Addr:    fmt.Sprintf("%s:%d", config.Setting.IP, config.Setting.Port),
 		ChannelHandlers: map[string]ssh.ChannelHandler{
 			"session": shim.FishlerSessionHandler,
 		},

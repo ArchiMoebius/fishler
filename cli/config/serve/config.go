@@ -24,6 +24,7 @@ var Setting *setting
 // initial settings (defaults)
 var initial = &setting{
 	RandomConnectionSleepCount: 0,
+	Banner:                     "OpenSSH_8.8",
 	IP:                         "127.0.0.1",
 	Port:                       2222,
 	DockerHostname:             "localhost",
@@ -42,6 +43,7 @@ var initial = &setting{
 // `struct` => fatih structs tag
 // `env` => environment variable name
 type setting struct {
+	Banner                     string   `mapstructure:"banner" structs:"banner" env:"FISHLER_BANNER"`
 	DockerMemoryLimit          int      `mapstructure:"docker-memory-limit" structs:"docker-memory-limit" env:"FISHLER_DOCKER_MEMORY_LIMIT"`
 	Volumns                    []string `mapstructure:"volumn" structs:"volumn"`
 	CryptoBasepath             string   `mapstructure:"crypto-basepath" structs:"crypto-basepath" env:"FISHLER_CRYPTO_BASEPATH"`
@@ -100,6 +102,7 @@ func CommandInit(command *cobra.Command) error {
 	command.PersistentFlags().String("docker-hostname", initial.DockerHostname, "The hostname used in the docker container")
 	command.PersistentFlags().Int("port", initial.Port, "The port to listen on for SSH connections - if not set, will bind to a random high port")
 	command.PersistentFlags().String("ip", initial.IP, "The IP to listen on for SSH connections - if not set, will bind to 127.0.0.1")
+	command.PersistentFlags().String("banner", initial.Banner, "The banner the SSH server displays")
 	command.PersistentFlags().Int("random-sleep-count", initial.RandomConnectionSleepCount, "If non-zero, sleep this at most this many seconds before allowing authentication to continue")
 
 	command.PersistentFlags().String("account-file", initial.AccountFilepath, "Exclusive: A file with a list of username/password combinations that are valid for the server (new-line delimited) in the form: username password - quote if space is present in either")
