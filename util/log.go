@@ -105,11 +105,23 @@ func SetLogger(filepath string) *logrus.Logger {
 	return logger
 }
 
+func GetSessionVolumnDirectory(basepath string, directory string, sessionRemoteAddress net.Addr) string {
+	ipaddr := strings.ReplaceAll(strings.ReplaceAll(strings.Split(sessionRemoteAddress.String(), ":")[0], ".", "-"), ":", "_")
+	dirpath := fmt.Sprintf("%s/%s/%s", basepath, directory, ipaddr)
+
+	err := os.MkdirAll(dirpath, 0750)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dirpath
+}
+
 func GetSessionFileName(basepath string, containerID string, sessionRemoteAddress net.Addr) string {
 	datetime := strings.ReplaceAll(strings.ReplaceAll(fmt.Sprintf("%v", time.Now().Format(time.RFC3339)), ":", ""), "-", "")
 	ipaddr := strings.ReplaceAll(strings.ReplaceAll(sessionRemoteAddress.String(), ".", "-"), ":", "_")
 
-	err := os.MkdirAll(basepath, os.ModePerm)
+	err := os.MkdirAll(basepath, 0750)
 	if err != nil {
 		log.Fatal(err)
 	}

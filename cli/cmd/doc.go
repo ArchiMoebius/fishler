@@ -19,7 +19,7 @@ var DocCmd = &cobra.Command{
 		CallPersistentPreRun(cmd, args)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := os.MkdirAll(documentationBasepath, os.ModePerm)
+		err := os.MkdirAll(documentationBasepath, 0750)
 		if err != nil {
 			log.Fatal(err)
 		}

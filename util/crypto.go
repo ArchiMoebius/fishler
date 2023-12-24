@@ -60,7 +60,7 @@ func GetKeySigner() (gossh.Signer, error) {
 }
 
 func GetFishlerPrivateKeyPath() string {
-	err := os.MkdirAll(config.Setting.CryptoBasepath, os.ModePerm)
+	err := os.MkdirAll(config.Setting.CryptoBasepath, 0750)
 	if err != nil {
 		log.Fatal(err)
 	}
