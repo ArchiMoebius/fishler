@@ -77,7 +77,7 @@ func (fs FishlerFS) Filecmd(request *sftp.Request) error {
 
 		return sftp.ErrSSHFxOk
 	case "Mkdir":
-		if err := os.MkdirAll(p, 0755); err != nil {
+		if err := os.MkdirAll(p, 0750); err != nil {
 			fs.logError(request, "sftp filecmd error", err)
 			return sftp.ErrSSHFxFailure
 		}

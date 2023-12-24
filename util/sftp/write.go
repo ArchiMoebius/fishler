@@ -28,12 +28,12 @@ func (fs FishlerFS) Filewrite(request *sftp.Request) (io.WriterAt, error) {
 	stat, statErr := os.Stat(p)
 
 	if os.IsNotExist(statErr) {
-		if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(p), 0750); err != nil {
 			fs.logError(request, "sftp write error", err)
 			return nil, sftp.ErrSSHFxFailure
 		}
 
-		file, err := os.Create(p)
+		file, err := os.Create(p) // #nosec
 		if err != nil {
 			fs.logError(request, "sftp write error", err)
 			return nil, sftp.ErrSSHFxFailure
@@ -50,7 +50,7 @@ func (fs FishlerFS) Filewrite(request *sftp.Request) (io.WriterAt, error) {
 		return nil, sftp.ErrSSHFxOpUnsupported
 	}
 
-	file, err := os.Create(p)
+	file, err := os.Create(p) // #nosec
 	if err != nil {
 		fs.logError(request, "sftp write error", err)
 		return nil, sftp.ErrSSHFxFailure

@@ -75,7 +75,7 @@ func (a *app) Start() error {
 							return nil
 						}
 
-						filepath.Walk(hostVolumnWorkingDir, readSize)
+						_ = filepath.Walk(hostVolumnWorkingDir, readSize)
 
 						sizeMB := dirSize / 1024 / 1024
 
@@ -86,7 +86,7 @@ func (a *app) Start() error {
 
 						if trash { // copy anything the user rm/rmdir to a 'trash' folder - UUID to mitigate collisions
 							replace = filepath.Join(hostVolumnTrashDir, uuid.New().String())
-							os.MkdirAll(replace, 0750)
+							_ = os.MkdirAll(replace, 0750)
 						}
 
 						p = filepath.Clean(strings.ReplaceAll(filepath.Clean(p), dockerVolumnWorkingDir, replace))

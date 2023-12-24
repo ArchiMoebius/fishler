@@ -327,11 +327,10 @@ func getContainerIdFromName(ctx context.Context, client *client.Client, containe
 
 	var cname = fmt.Sprintf("/%s", containerName)
 
-	for _, container := range containers {
-		fmt.Printf("%s %s (%s)\n", container.ID, container.Image, container.Names[0])
+	for i := 0; i < len(containers); i++ {
 
-		if strings.EqualFold(cname, container.Names[0]) {
-			return container.ID, nil
+		if strings.EqualFold(cname, containers[i].Names[0]) {
+			return containers[i].ID, nil
 		}
 	}
 
