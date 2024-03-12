@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
-	github.com/docker/docker v25.0.3+incompatible
+	github.com/docker/docker v25.0.4+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/gliderlabs/ssh v0.3.6
 	github.com/leebenson/conform v1.2.2
