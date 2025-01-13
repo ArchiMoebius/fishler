@@ -8,7 +8,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/leebenson/conform v1.2.2
-	github.com/sanity-io/litter v1.5.5
+	github.com/sanity-io/litter v1.5.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/snowzach/rotatefilehook v0.0.0-20220211133110-53752135082d
 	github.com/spf13/cobra v1.8.1
