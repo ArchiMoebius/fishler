@@ -15,13 +15,14 @@ import (
 	"github.com/archimoebius/fishler/asset"
 	config "github.com/archimoebius/fishler/cli/config/root"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
 
 func buildImage(client *client.Client, tags []string, dockerBasepath string) error {
 	ctx := context.Background()
 
-	reader, err := client.ImagePull(ctx, "docker.io/library/alpine", types.ImagePullOptions{})
+	reader, err := client.ImagePull(ctx, "docker.io/library/alpine", image.PullOptions{})
 	if err != nil {
 		return err
 	}

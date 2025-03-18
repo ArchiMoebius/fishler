@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/archimoebius/fishler/util"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
@@ -43,18 +43,18 @@ var RootImageRemoveCmd = &cobra.Command{
 			return
 		}
 
-		for _, image := range images {
-			_, err = dockerClient.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{
+		for _, img := range images {
+			_, err = dockerClient.ImageRemove(ctx, img.ID, image.RemoveOptions{
 				Force:         forceRemove,
 				PruneChildren: true,
 			})
 
 			if err != nil {
-				util.Logger.Errorf("Failed to remove image %s %v", image.ID, err)
+				util.Logger.Errorf("Failed to remove image %s %v", img.ID, err)
 				continue
 			}
 
-			util.Logger.Infof("Image Removed %s", image.ID)
+			util.Logger.Infof("Image Removed %s", img.ID)
 		}
 	},
 }

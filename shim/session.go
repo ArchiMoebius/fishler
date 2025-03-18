@@ -9,6 +9,7 @@ import (
 
 	"github.com/anmitsu/go-shlex"
 	"github.com/archimoebius/fishler/util"
+	"github.com/ccoveille/go-safecast"
 	glssh "github.com/gliderlabs/ssh"
 	"github.com/sirupsen/logrus"
 	gossh "golang.org/x/crypto/ssh"
@@ -181,8 +182,13 @@ func (sess *session) Exit(code int) error {
 	}
 	sess.exited = true
 
-	status := struct{ Status uint32 }{uint32(code)}
-	_, err := sess.SendRequest("exit-status", false, gossh.Marshal(&status))
+	ucode, err := safecast.ToUint32(code)
+	if err != nil {
+		ucode = 5417
+	}
+
+	status := struct{ Status uint32 }{Status: ucode}
+	_, err = sess.SendRequest("exit-status", false, gossh.Marshal(&status))
 	if err != nil {
 		return err
 	}

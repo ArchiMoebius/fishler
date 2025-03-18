@@ -12,6 +12,7 @@ import (
 
 	config "github.com/archimoebius/fishler/cli/config/root"
 	configServe "github.com/archimoebius/fishler/cli/config/serve"
+	"github.com/ccoveille/go-safecast"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -97,7 +98,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 			return exitCode, cleanup, e
 		}
 
-		e = dockerClient.ContainerStart(ctx, containerID, types.ContainerStartOptions{})
+		e = dockerClient.ContainerStart(ctx, containerID, container.StartOptions{})
 		if e != nil {
 			Logger.Error(e)
 			return exitCode, cleanup, e
@@ -155,7 +156,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	stream, err := dockerClient.ContainerAttach(
 		ctx,
 		containerID,
-		types.ContainerAttachOptions{
+		container.AttachOptions{
 			Stdin:  createCfg.AttachStdin,
 			Stdout: createCfg.AttachStdout,
 			Stderr: createCfg.AttachStderr,
@@ -231,16 +232,22 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	if createCfg.Tty {
 		_, winCh, _ := sess.Pty()
 		go func() {
-			var height = 0
-			var width = 0
+			var height uint = 0
+			var width uint = 0
 
 			for win := range winCh {
-				width = win.Width
-				height = win.Height
+				width, err = safecast.ToUint(win.Width)
+				if err != nil {
+					width = 1024
+				}
+				height, err = safecast.ToUint(win.Height)
+				if err != nil {
+					height = 768
+				}
 
-				err := dockerClient.ContainerResize(ctx, containerID, types.ResizeOptions{
-					Height: uint(height),
-					Width:  uint(width),
+				err := dockerClient.ContainerResize(ctx, containerID, container.ResizeOptions{
+					Height: height,
+					Width:  width,
 				})
 				if err != nil {
 					Logger.Error(err)
@@ -301,7 +308,7 @@ func CleanIfContainerExists(ctx context.Context, client *client.Client, containe
 
 	if err == nil { // container exists
 
-		err = client.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
+		err = client.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
 		if err != nil {
 			return err
 		}
@@ -315,7 +322,7 @@ func getContainerIdFromName(ctx context.Context, client *client.Client, containe
 	filters := filters.NewArgs()
 	filters.Add("label", "fishler")
 
-	containers, err := client.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := client.ContainerList(context.Background(), container.ListOptions{
 		Size:    false,
 		All:     false,
 		Filters: filters,

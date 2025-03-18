@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/binary"
 
+	"github.com/ccoveille/go-safecast"
 	glssh "github.com/gliderlabs/ssh"
 	"golang.org/x/crypto/ssh"
 )
@@ -67,7 +68,11 @@ func parseString(in []byte) (out string, rest []byte, ok bool) {
 		return
 	}
 	length := binary.BigEndian.Uint32(in)
-	if uint32(len(in)) < 4+length {
+	maxLength, err := safecast.ToInt(4 + length)
+	if err != nil {
+		maxLength = 4
+	}
+	if len(in) < maxLength {
 		return
 	}
 	out = string(in[4 : 4+length])
