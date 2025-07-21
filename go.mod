@@ -1,6 +1,7 @@
 module github.com/archimoebius/fishler
 
-go 1.21
+go 1.23.0
+
 toolchain go1.24.1
 
 require (
@@ -9,7 +10,7 @@ require (
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/gliderlabs/ssh v0.3.8
-	github.com/leebenson/conform v1.2.2
+	github.com/leebenson/conform v1.2.3
 	github.com/sanity-io/litter v1.5.8
 	github.com/sirupsen/logrus v1.9.3
 	github.com/snowzach/rotatefilehook v0.0.0-20220211133110-53752135082d
