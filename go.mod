@@ -1,11 +1,12 @@
 module github.com/archimoebius/fishler
 
-go 1.21
+go 1.23.0
+
 toolchain go1.24.1
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
-	github.com/ccoveille/go-safecast v1.6.0
+	github.com/ccoveille/go-safecast v1.7.0
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/gliderlabs/ssh v0.3.8
