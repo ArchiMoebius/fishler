@@ -13,7 +13,6 @@ import (
 	config "github.com/archimoebius/fishler/cli/config/root"
 	configServe "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/ccoveille/go-safecast"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
@@ -89,7 +88,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 			return exitCode, cleanup, e
 		}
 
-		e = dockerClient.CopyToContainer(ctx, containerID, "/etc/", bytes.NewReader(profiletarbuffer), types.CopyToContainerOptions{
+		e = dockerClient.CopyToContainer(ctx, containerID, "/etc/", bytes.NewReader(profiletarbuffer), container.CopyToContainerOptions{
 			AllowOverwriteDirWithFile: true,
 			CopyUIDGID:                false,
 		})
@@ -104,7 +103,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 			return exitCode, cleanup, e
 		}
 
-		execResponse, e := dockerClient.ContainerExecCreate(ctx, containerID, types.ExecConfig{
+		execResponse, e := dockerClient.ContainerExecCreate(ctx, containerID, container.ExecOptions{
 			User:         "root",
 			Tty:          true,
 			AttachStdin:  false,
@@ -120,7 +119,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 		hijackedResponse, e := dockerClient.ContainerExecAttach(
 			ctx,
 			execResponse.ID,
-			types.ExecStartCheck{
+			container.ExecAttachOptions{
 				Detach: false,
 				Tty:    true,
 			},
