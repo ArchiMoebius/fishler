@@ -9,7 +9,7 @@ import (
 
 	"github.com/anmitsu/go-shlex"
 	"github.com/archimoebius/fishler/util"
-	"github.com/ccoveille/go-safecast"
+	"github.com/ccoveille/go-safecast/v2"
 	glssh "github.com/gliderlabs/ssh"
 	"github.com/sirupsen/logrus"
 	gossh "golang.org/x/crypto/ssh"
@@ -182,7 +182,7 @@ func (sess *session) Exit(code int) error {
 	}
 	sess.exited = true
 
-	ucode, err := safecast.ToUint32(code)
+	ucode, err := safecast.Convert[uint32](code)
 	if err != nil {
 		ucode = 5417
 	}

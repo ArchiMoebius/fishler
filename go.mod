@@ -6,7 +6,6 @@ toolchain go1.24.5
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
-	github.com/ccoveille/go-safecast v1.8.2
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/gliderlabs/ssh v0.3.8
@@ -45,6 +44,7 @@ require (
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/ccoveille/go-safecast/v2 v2.0.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.6.0 // indirect

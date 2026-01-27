@@ -12,7 +12,7 @@ import (
 
 	config "github.com/archimoebius/fishler/cli/config/root"
 	configServe "github.com/archimoebius/fishler/cli/config/serve"
-	"github.com/ccoveille/go-safecast"
+	"github.com/ccoveille/go-safecast/v2"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
@@ -235,11 +235,11 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 			var width uint = 0
 
 			for win := range winCh {
-				width, err = safecast.ToUint(win.Width)
+				width, err = safecast.Convert[uint](win.Width)
 				if err != nil {
 					width = 1024
 				}
-				height, err = safecast.ToUint(win.Height)
+				height, err = safecast.Convert[uint](win.Height)
 				if err != nil {
 					height = 768
 				}
