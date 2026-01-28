@@ -10,7 +10,7 @@ import (
 	"github.com/anmitsu/go-shlex"
 	"github.com/archimoebius/fishler/util"
 	"github.com/ccoveille/go-safecast/v2"
-	glssh "github.com/gliderlabs/ssh"
+	glssh "github.com/charmbracelet/ssh"
 	"github.com/sirupsen/logrus"
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -492,4 +492,16 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 
 		}
 	}
+}
+
+type ContextKey struct {
+	name string
+}
+
+var ContextKeyHASSHInfo = &ContextKey{"hassh-info"}
+
+var contextKeyEmulatePty = &ContextKey{"emulate-pty"}
+
+func (sess *session) EmulatedPty() bool {
+	return sess.ctx.Value(contextKeyEmulatePty) == true
 }

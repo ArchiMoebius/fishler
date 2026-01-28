@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -17,15 +18,20 @@ import (
 	"github.com/archimoebius/fishler/shim"
 	"github.com/archimoebius/fishler/util"
 	FishlerSFTP "github.com/archimoebius/fishler/util/sftp"
+	"github.com/charmbracelet/ssh"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
-	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
 	"github.com/pkg/sftp"
 	"github.com/sirupsen/logrus"
-
 	gossh "golang.org/x/crypto/ssh"
+
+	client "github.com/ArchiMoebius/uplink/client"
+	pb "github.com/ArchiMoebius/uplink/pkg/gen/v1"
 )
+
+var ServiceUUIDString = "00000000-0000-0000-0000-000000000000"
+var ServiceUUID = uuid.MustParse(ServiceUUIDString)
 
 // Application is the interface for the application
 type Application interface {
@@ -34,15 +40,108 @@ type Application interface {
 
 // app is the implementation of the application
 type app struct {
+	BeamClient  *client.BeamClient
+	ServiceUUID []byte
 }
 
 // NewApplication creates a new application
 func NewApplication() Application {
-	return &app{}
+	b, _ := ServiceUUID.MarshalBinary()
+
+	return &app{
+		BeamClient:  nil,
+		ServiceUUID: b,
+	}
+}
+
+func (a *app) BeamEvent(
+	sourceAddr net.Addr,
+	authMethod pb.AuthMethod,
+	username,
+	password,
+	sshClientName string,
+	hassh string,
+) {
+	if a.BeamClient == nil {
+		return
+	}
+
+	event := &pb.SSHConnectionEvent{
+		TimestampMicros: time.Now().UnixMicro(),
+		ServiceUuid:     a.ServiceUUID,
+		AuthMethods: []pb.AuthMethod{
+			authMethod,
+		},
+		Username:      []byte(username),
+		Password:      []byte(password),
+		SshClientName: sshClientName,
+		Hassh:         []byte(hassh),
+	}
+
+	if err := util.ParseNetAddr(sourceAddr, event); err != nil {
+		log.Fatalf("Failed to parse source address: (%s) %v", sourceAddr.String(), err)
+	}
+
+	util.Logger.WithFields(logrus.Fields{
+		"TimestampMicros": event.TimestampMicros,
+		"ServiceUuid":     event.ServiceUuid,
+		"Username":        event.Username,
+		"Password":        event.Password,
+		"SshClientName":   event.SshClientName,
+		"Hassh":           event.Hassh,
+		"SourceIp":        event.SourceIp,
+		"SourcePort":      event.SourcePort,
+	}).Debug("beaming event")
+
+	if err := a.BeamClient.SendEvent(event); err != nil {
+		log.Printf("event send failure - checking connection: %v", err)
+
+		if err := a.BeamClient.Reconnect(); err != nil {
+			log.Fatalf("Failed to reconnect to uplink server: %v", err)
+		}
+
+		if err := a.BeamClient.SendEvent(event); err != nil {
+			log.Printf("Failed to send event: %v", err)
+		}
+	}
 }
 
 func (a *app) Start() error {
+
+	if len(rootConfig.Setting.UplinkServerAddress) > 0 {
+		beamClient, err := client.NewBeamClient(rootConfig.Setting.UplinkServerAddress)
+
+		if err != nil {
+			util.Logger.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("failed to create beam client")
+		}
+		a.BeamClient = beamClient
+		defer a.BeamClient.Close()
+
+		util.Logger.WithFields(logrus.Fields{
+			"server":       rootConfig.Setting.UplinkServerAddress,
+			"state":        beamClient.GetState(),
+			"service_uuid": ServiceUUIDString,
+		}).Info("connected to uplink server")
+	}
+
 	s := &ssh.Server{
+		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
+			return &shim.HASSHConnectionWrapper{
+				Conn: conn,
+				OnCapture: func(info *shim.HASSHInfo) {
+					util.Logger.WithFields(logrus.Fields{
+						"client": info.RemoteAddr,
+						"SSH ID": info.ClientID,
+						"HASSH":  info.Hash,
+					}).Info("HASSH Event")
+
+					ctx.SetValue(shim.ContextKeyHASSHInfo, info)
+				},
+				Buffer: make([]byte, 0, 8192),
+			}
+		},
 		Version: configServe.Setting.Banner,
 		Addr:    fmt.Sprintf("%s:%d", configServe.Setting.IP, configServe.Setting.Port),
 		ChannelHandlers: map[string]ssh.ChannelHandler{
@@ -131,7 +230,6 @@ func (a *app) Start() error {
 			},
 		},
 		PasswordHandler: func(ctx ssh.Context, password string) bool {
-
 			if configServe.Setting.RandomConnectionSleepCount > 0 {
 				min := 1.0
 				max := float64(configServe.Setting.RandomConnectionSleepCount)
@@ -140,6 +238,20 @@ func (a *app) Start() error {
 			}
 
 			authenticated := configServe.Setting.Authenticate(ctx.User(), password)
+
+			info := ctx.Value(shim.ContextKeyHASSHInfo).(*shim.HASSHInfo)
+			if info == nil {
+				return false
+			}
+
+			a.BeamEvent(
+				ctx.RemoteAddr(),
+				pb.AuthMethod_AUTH_METHOD_PASSWORD,
+				ctx.User(),
+				password,
+				ctx.ClientVersion(),
+				info.Hash,
+			)
 
 			util.Logger.WithFields(logrus.Fields{
 				"address":        ctx.RemoteAddr().String(),
@@ -160,16 +272,71 @@ func (a *app) Start() error {
 				"client_version": ctx.ClientVersion(),
 				"session_id":     ctx.SessionID(),
 			}).Info("public-key authentication event")
+
+			info := ctx.Value(shim.ContextKeyHASSHInfo).(*shim.HASSHInfo)
+			if info == nil {
+				return false
+			}
+
+			a.BeamEvent(
+				ctx.RemoteAddr(),
+				pb.AuthMethod_AUTH_METHOD_PUBLICKEY,
+				ctx.User(),
+				string(key.Marshal()),
+				ctx.ClientVersion(),
+				info.Hash,
+			)
+
 			return false
 		},
 		KeyboardInteractiveHandler: func(ctx ssh.Context, challenger gossh.KeyboardInteractiveChallenge) bool {
+			questions := []string{"Password: "}
+			echos := []bool{false}
+			authenticated := false
+			password := ""
+
+			answers, err := challenger(ctx.User(), "Please authenticate", questions, echos)
+
+			if err != nil || len(answers) == 0 {
+				util.Logger.WithFields(logrus.Fields{
+					"address":        ctx.RemoteAddr().String(),
+					"username":       ctx.User(),
+					"password":       "",
+					"client_version": ctx.ClientVersion(),
+					"session_id":     ctx.SessionID(),
+					"success":        authenticated,
+				}).Info("keyboard-interactive authentication event")
+
+				return false
+			}
+			password = answers[0]
+
+			authenticated = configServe.Setting.Authenticate(ctx.User(), password)
+
+			info := ctx.Value(shim.ContextKeyHASSHInfo).(*shim.HASSHInfo)
+			if info == nil {
+				return false
+			}
+
+			a.BeamEvent(
+				ctx.RemoteAddr(),
+				pb.AuthMethod_AUTH_METHOD_KEYBOARD_INTERACTIVE,
+				ctx.User(),
+				password,
+				ctx.ClientVersion(),
+				info.Hash,
+			)
+
 			util.Logger.WithFields(logrus.Fields{
 				"address":        ctx.RemoteAddr().String(),
 				"username":       ctx.User(),
+				"password":       password,
 				"client_version": ctx.ClientVersion(),
 				"session_id":     ctx.SessionID(),
+				"success":        authenticated,
 			}).Info("keyboard-interactive authentication event")
-			return false
+
+			return authenticated
 		},
 		Handler: func(sess ssh.Session) {
 			_, _, isTty := sess.Pty()

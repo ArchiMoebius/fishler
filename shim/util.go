@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 
 	"github.com/ccoveille/go-safecast/v2"
-	glssh "github.com/gliderlabs/ssh"
+	glssh "github.com/charmbracelet/ssh"
 	"golang.org/x/crypto/ssh"
 )
 

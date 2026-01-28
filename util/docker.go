@@ -13,12 +13,12 @@ import (
 	config "github.com/archimoebius/fishler/cli/config/root"
 	configServe "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/ccoveille/go-safecast/v2"
+	"github.com/charmbracelet/ssh"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
-	"github.com/gliderlabs/ssh"
 	"github.com/sirupsen/logrus"
 )
 
