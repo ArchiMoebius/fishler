@@ -1,5 +1,5 @@
-github.com/ArchiMoebius/uplink v0.1.1 h1:g7GwMBRfaHKGXeP2Y1OFduvlIV25hjpNL0QZ1S27VD0=
-github.com/ArchiMoebius/uplink v0.1.1/go.mod h1:tCVp+rt0EzjEO3ABO9qLmcVSdG8wpjZHc9K8dEY97TY=
+github.com/ArchiMoebius/uplink v0.1.3 h1:Zg+/CrPk7LZmOwrjX3xtdSkFpdmGMsUJRL77vREVwJ0=
+github.com/ArchiMoebius/uplink v0.1.3/go.mod h1:tCVp+rt0EzjEO3ABO9qLmcVSdG8wpjZHc9K8dEY97TY=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/Masterminds/glide v0.13.2/go.mod h1:STyF5vcenH/rUqTEv+/hBXlSTo7KYwg2oc2f4tzPWic=

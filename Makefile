@@ -22,7 +22,6 @@ freebsd: lint security docs
 	@env CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/fishler-freebsd_amd64 main.go
 
 linux: lint security docs
-	@echo "LDFLAGS: ${LDFLAGS}"
 	@env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/fishler-linux_amd64 main.go
 
 docs:

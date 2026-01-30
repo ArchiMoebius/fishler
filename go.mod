@@ -3,7 +3,7 @@ module github.com/archimoebius/fishler
 go 1.25.6
 
 require (
-	github.com/ArchiMoebius/uplink v0.1.1
+	github.com/ArchiMoebius/uplink v0.1.3
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/fatih/structs v1.1.0

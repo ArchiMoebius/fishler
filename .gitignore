@@ -22,3 +22,5 @@ go.work
 dist
 mkdocs/site
 system.log
+session/
+data/
