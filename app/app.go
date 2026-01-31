@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/archimoebius/fishler/shim"
 	"github.com/archimoebius/fishler/util"
 	FishlerSFTP "github.com/archimoebius/fishler/util/sftp"
+	fishyfs "github.com/archimoebius/fishyfs/fs"
 	"github.com/charmbracelet/ssh"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
@@ -40,21 +42,43 @@ type Application interface {
 
 // app is the implementation of the application
 type app struct {
-	BeamClient  *client.BeamClient
-	ServiceUUID []byte
+	BeamClient    *client.BeamClient
+	ServiceUUID   []byte
+	FishyFSMgr    *fishyfs.Manager
+	cleanupCtx    context.Context
+	cleanupCancel context.CancelFunc
 }
 
 // NewApplication creates a new application
 func NewApplication() Application {
 	b, _ := ServiceUUID.MarshalBinary()
 
-	return &app{
-		BeamClient:  nil,
-		ServiceUUID: b,
+	// Create fishyfs manager
+	fishyfsBaseDir := filepath.Join(rootConfig.Setting.LogBasepath, "fishyfs")
+	mgr := fishyfs.NewManager(fishyfsBaseDir)
+
+	// Set mount timeout (optional)
+	mgr.SetMountTimeout(24 * time.Hour)
+
+	// Create cleanup context
+	ctx, cancel := context.WithCancel(context.Background())
+
+	app := &app{
+		BeamClient:    nil,
+		ServiceUUID:   b,
+		FishyFSMgr:    mgr,
+		cleanupCtx:    ctx,
+		cleanupCancel: cancel,
 	}
+
+	// Start cleanup goroutine for idle mounts
+	go mgr.CleanupIdleMounts(ctx)
+
+	return app
 }
 
 func (a *app) BeamEvent(
+	sessionID string,
 	sourceAddr net.Addr,
 	authMethod pb.AuthMethod,
 	username,
@@ -69,6 +93,7 @@ func (a *app) BeamEvent(
 	event := &pb.SSHConnectionEvent{
 		TimestampMicros: time.Now().UnixMicro(),
 		ServiceUuid:     a.ServiceUUID,
+		SessionUuid:     []byte(sessionID),
 		AuthMethods: []pb.AuthMethod{
 			authMethod,
 		},
@@ -126,6 +151,14 @@ func (a *app) Start() error {
 		}).Info("connected to uplink server")
 	}
 
+	defer func() {
+		a.cleanupCancel()
+
+		if err := a.FishyFSMgr.UnmountAll(); err != nil {
+			util.Logger.WithError(err).Error("failed to unmount all filesystems")
+		}
+	}()
+
 	s := &ssh.Server{
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
 			return &shim.HASSHConnectionWrapper{
@@ -149,9 +182,25 @@ func (a *app) Start() error {
 		},
 		SubsystemHandlers: map[string]ssh.SubsystemHandler{
 			"sftp": func(sess ssh.Session) {
+				// Get or create FUSE mount for this user
+				mountPoint, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
+				if err != nil {
+					util.Logger.WithError(err).Error("failed to get mount point")
+					_ = sess.Exit(1)
+					return
+				}
 
-				var hostVolumnWorkingDir = util.GetSessionVolumnDirectory(rootConfig.Setting.LogBasepath, "data", sess.RemoteAddr())
-				var hostVolumnTrashDir = util.GetSessionVolumnDirectory(rootConfig.Setting.LogBasepath, "trash", sess.RemoteAddr())
+				// Get mirror directory for trash
+				mirrorDir, err := a.FishyFSMgr.GetMirrorDir(sess.Context().User())
+				if err != nil {
+					util.Logger.WithError(err).Error("failed to get mirror directory")
+					_ = sess.Exit(1)
+					return
+				}
+
+				// SFTP will use the FUSE mount point as the working directory
+				var hostVolumnWorkingDir = mountPoint
+				var hostVolumnTrashDir = mirrorDir
 				var dockerVolumnWorkingDir = fmt.Sprintf("/home/%s", sess.User())
 
 				if sess.User() == "root" {
@@ -177,7 +226,6 @@ func (a *app) Start() error {
 						_ = filepath.Walk(hostVolumnWorkingDir, readSize)
 
 						sizeMB := dirSize / 1024 / 1024
-
 						return sizeMB <= configServe.Setting.DockerDiskLimit
 					},
 					GetDockerVolumnPath: func(fs FishlerSFTP.FishlerFS, p string, trash bool) (string, error) {
@@ -245,6 +293,7 @@ func (a *app) Start() error {
 			}
 
 			a.BeamEvent(
+				ctx.SessionID(),
 				ctx.RemoteAddr(),
 				pb.AuthMethod_AUTH_METHOD_PASSWORD,
 				ctx.User(),
@@ -279,6 +328,7 @@ func (a *app) Start() error {
 			}
 
 			a.BeamEvent(
+				ctx.SessionID(),
 				ctx.RemoteAddr(),
 				pb.AuthMethod_AUTH_METHOD_PUBLICKEY,
 				ctx.User(),
@@ -319,6 +369,7 @@ func (a *app) Start() error {
 			}
 
 			a.BeamEvent(
+				ctx.SessionID(),
 				ctx.RemoteAddr(),
 				pb.AuthMethod_AUTH_METHOD_KEYBOARD_INTERACTIVE,
 				ctx.User(),
@@ -352,8 +403,14 @@ func (a *app) Start() error {
 				"subsystem":   sess.Subsystem(),
 			}).Info("session event")
 
-			var workingDir = fmt.Sprintf("/home/%s", sess.User())
+			mountPoint, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
+			if err != nil {
+				util.Logger.WithError(err).Error("failed to get mount point")
+				_ = sess.Exit(1)
+				return
+			}
 
+			var workingDir = fmt.Sprintf("/home/%s", sess.User())
 			if sess.User() == "root" {
 				workingDir = "/root/"
 			}
@@ -386,8 +443,13 @@ func (a *app) Start() error {
 				},
 			}
 
+			// Mount the FUSE filesystem as a volumn for the user's home directory in the container
+			volumeBinding := fmt.Sprintf("%s:%s", mountPoint, workingDir)
 			if len(configServe.Setting.Volumns) > 0 {
+				configServe.Setting.Volumns = append(configServe.Setting.Volumns, volumeBinding)
 				hostCfg.Binds = configServe.Setting.Volumns
+			} else {
+				hostCfg.Binds = []string{volumeBinding}
 			}
 
 			networkCfg := &network.NetworkingConfig{}

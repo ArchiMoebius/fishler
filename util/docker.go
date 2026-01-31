@@ -30,7 +30,7 @@ func GetContainerName(remoteIP string) string {
 }
 
 func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.HostConfig, networkCfg *network.NetworkingConfig, sess ssh.Session) (exitCode int64, cleanup func(), err error) {
-	var hostVolumnWorkingDir = GetSessionVolumnDirectory(config.Setting.LogBasepath, "data", sess.RemoteAddr())
+	var hostVolumnWorkingDir = GetSessionVolumnDirectory(config.Setting.LogBasepath, "data", sess.User())
 	var dockerVolumnWorkingDir = fmt.Sprintf("/home/%s", sess.User())
 
 	if sess.User() == "root" {
@@ -168,7 +168,7 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 		return
 	}
 
-	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.Setting.LogBasepath), containerID, sess.RemoteAddr())
+	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.Setting.LogBasepath), sess.Context().SessionID())
 	f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600) // #nosec
 
 	if err != nil {

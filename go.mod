@@ -3,7 +3,7 @@ module github.com/archimoebius/fishler
 go 1.25.6
 
 require (
-	github.com/ArchiMoebius/uplink v0.1.3
+	github.com/ArchiMoebius/uplink v0.1.4
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/fatih/structs v1.1.0
@@ -50,6 +50,7 @@ require (
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/archimoebius/fishyfs v0.1.0
 	github.com/ccoveille/go-safecast/v2 v2.0.0
 	github.com/charmbracelet/ssh v0.0.0-20250826160808-ebfa259c7309
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
@@ -59,6 +60,7 @@ require (
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/google/uuid v1.6.0
+	github.com/hanwen/go-fuse/v2 v2.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect

@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -105,9 +103,8 @@ func SetLogger(filepath string) *logrus.Logger {
 	return logger
 }
 
-func GetSessionVolumnDirectory(basepath string, directory string, sessionRemoteAddress net.Addr) string {
-	ipaddr := strings.ReplaceAll(strings.ReplaceAll(strings.Split(sessionRemoteAddress.String(), ":")[0], ".", "-"), ":", "_")
-	dirpath := fmt.Sprintf("%s/%s/%s", basepath, directory, ipaddr)
+func GetSessionVolumnDirectory(basepath string, directory string, sessionID string) string {
+	dirpath := fmt.Sprintf("%s/%s/%s", basepath, directory, sessionID)
 
 	err := os.MkdirAll(dirpath, 0750)
 	if err != nil {
@@ -117,16 +114,13 @@ func GetSessionVolumnDirectory(basepath string, directory string, sessionRemoteA
 	return dirpath
 }
 
-func GetSessionFileName(basepath string, containerID string, sessionRemoteAddress net.Addr) string {
-	datetime := strings.ReplaceAll(strings.ReplaceAll(fmt.Sprintf("%v", time.Now().Format(time.RFC3339)), ":", ""), "-", "")
-	ipaddr := strings.ReplaceAll(strings.ReplaceAll(sessionRemoteAddress.String(), ".", "-"), ":", "_")
-
+func GetSessionFileName(basepath string, sessionID string) string {
 	err := os.MkdirAll(basepath, 0750)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return fmt.Sprintf("%s/%s_%s_%s.log", basepath, containerID, datetime, ipaddr)
+	return fmt.Sprintf("%s/%s.log", basepath, sessionID)
 }
 
 func ByteCountDecimal(b int64) string {
