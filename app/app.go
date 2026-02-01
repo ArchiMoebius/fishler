@@ -52,18 +52,14 @@ type app struct {
 	beamMutex     sync.Mutex
 }
 
-// NewApplication creates a new application
 func NewApplication() Application {
 	b, _ := ServiceUUID.MarshalBinary()
 
-	// Create fishyfs manager
 	fishyfsBaseDir := filepath.Join(rootConfig.Setting.LogBasepath, "fishyfs")
 	mgr := fishyfs.NewManager(fishyfsBaseDir)
 
-	// Set mount timeout (optional)
 	mgr.SetMountTimeout(24 * time.Hour)
 
-	// Create cleanup context
 	ctx, cancel := context.WithCancel(context.Background())
 
 	app := &app{
@@ -74,7 +70,6 @@ func NewApplication() Application {
 		cleanupCancel: cancel,
 	}
 
-	// Start cleanup goroutine for idle mounts
 	go mgr.CleanupIdleMounts(ctx)
 
 	return app
@@ -166,6 +161,8 @@ func (a *app) Start() error {
 
 		if err := a.FishyFSMgr.UnmountAll(); err != nil {
 			util.Logger.WithError(err).Error("failed to unmount all filesystems")
+		} else {
+			util.Logger.Info("Unmounted all FUSE binds")
 		}
 	}()
 
@@ -187,9 +184,9 @@ func (a *app) Start() error {
 		},
 		Version: configServe.Setting.Banner,
 		Addr:    fmt.Sprintf("%s:%d", configServe.Setting.IP, configServe.Setting.Port),
-		ChannelHandlers: map[string]ssh.ChannelHandler{
-			"session": shim.FishlerSessionHandler,
-		},
+		// ChannelHandlers: map[string]ssh.ChannelHandler{
+		// 	"session": shim.FishlerSessionHandler,
+		// },
 		SubsystemHandlers: map[string]ssh.SubsystemHandler{
 			"sftp": func(sess ssh.Session) {
 				hostVolumnWorkingDir, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
@@ -308,6 +305,13 @@ func (a *app) Start() error {
 			return authenticated
 		},
 		PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
+			if configServe.Setting.RandomConnectionSleepCount > 0 {
+				min := 1.0
+				max := float64(configServe.Setting.RandomConnectionSleepCount)
+
+				time.Sleep(time.Duration((min + rand.Float64()*(max-min)) * float64(time.Second))) // #nosec
+			}
+
 			util.Logger.WithFields(logrus.Fields{
 				"address":        ctx.RemoteAddr().String(),
 				"username":       ctx.User(),
@@ -334,12 +338,19 @@ func (a *app) Start() error {
 			return false
 		},
 		KeyboardInteractiveHandler: func(ctx ssh.Context, challenger gossh.KeyboardInteractiveChallenge) bool {
+			if configServe.Setting.RandomConnectionSleepCount > 0 {
+				min := 1.0
+				max := float64(configServe.Setting.RandomConnectionSleepCount)
+
+				time.Sleep(time.Duration((min + rand.Float64()*(max-min)) * float64(time.Second))) // #nosec
+			}
+
 			questions := []string{"Password: "}
 			echos := []bool{false}
 			authenticated := false
 			password := ""
 
-			answers, err := challenger(strings.Split(ctx.User(), "\n")[0], "Please authenticate", questions, echos)
+			answers, err := challenger("", "", questions, echos)
 
 			if err != nil || len(answers) == 0 {
 				util.Logger.WithFields(logrus.Fields{
@@ -413,18 +424,11 @@ func (a *app) Start() error {
 				appendRoot = false
 			}
 
-			// Determine the command to run in the container
-			cmd := sess.Command()
-			if len(cmd) == 0 {
-				// No command specified, start a shell
-				cmd = []string{"/bin/sh"}
-			}
-
 			createCfg := &container.Config{
 				Image:        rootConfig.Setting.DockerImagename,
 				Hostname:     configServe.Setting.DockerHostname,
 				User:         sess.User(),
-				Cmd:          cmd,
+				Cmd:          sess.Command(), // NOTE: assumes the Dockerfile has a default cmd *shrugs*
 				Env:          sess.Environ(),
 				Tty:          true,
 				OpenStdin:    true,
@@ -441,7 +445,8 @@ func (a *app) Start() error {
 				DNS:           []string{},
 				DNSSearch:     []string{},
 				Privileged:    false,
-				ShmSize:       256,
+				ShmSize:       1024,
+				ConsoleSize:   [2]uint{1024, 768},
 				ReadonlyPaths: []string{"/bin", "/dev", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var", "/tmp"},
 				Resources: container.Resources{
 					Memory: 1024 * 1024 * int64(configServe.Setting.DockerMemoryLimit),

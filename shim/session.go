@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -117,6 +118,8 @@ func FishlerSessionHandler(srv *glssh.Server, conn *gossh.ServerConn, newChan go
 		subsystemHandlers: srv.SubsystemHandlers,
 		ctx:               ctx,
 	}
+
+	ctx.SetValue(ContextKeySession, sess)
 
 	sess.handleRequests(reqs)
 }
@@ -236,7 +239,7 @@ func (sess *session) Command() []string {
 	sess.Lock()
 	rawCmd := sess.rawCmd
 	sess.Unlock()
-	
+
 	cmd, _ := shlex.Split(rawCmd, true)
 	return append([]string(nil), cmd...)
 }
@@ -279,16 +282,6 @@ func (sess *session) Break(c chan<- bool) {
 }
 
 func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
-	defer func() {
-		// Close winch channel when request channel closes
-		sess.Lock()
-		if sess.winch != nil {
-			close(sess.winch)
-			sess.winch = nil
-		}
-		sess.Unlock()
-	}()
-
 	for req := range reqs {
 		switch req.Type {
 		case "shell", "exec":
@@ -333,14 +326,23 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 
 			sess.handled = true
 			sess.Unlock()
-			
+
 			err := req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
 			}
 
 			go func() {
+				if sess.pty != nil && !sess.pty.IsZero() {
+					// TODO: log error to server
+					go io.Copy(sess.pty, sess) // nolint: errcheck
+					go io.Copy(sess, sess.pty) // nolint: errcheck
+				}
 				sess.handler(sess)
+				sess.Exit(0)
+				if sess.pty != nil && !sess.pty.IsZero() {
+					sess.pty.Close() // nolint: errcheck
+				}
 			}()
 		case "subsystem":
 			sess.Lock()
@@ -396,7 +398,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 
 			sess.handled = true
 			sess.Unlock()
-			
+
 			err = req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -436,7 +438,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 
 			sess.env = append(sess.env, envkv)
 			sess.Unlock()
-			
+
 			err = req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -493,7 +495,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			sess.winch = make(chan glssh.Window, 1)
 			sess.winch <- ptyReq.Window
 			sess.Unlock()
-			
+
 			err := req.Reply(ok, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -510,17 +512,13 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 
 				continue
 			}
-			win, ok := parseWinchRequest(req.Payload)
+			win, _, ok := parseWindow(req.Payload)
 			if ok {
 				sess.pty.Window = win
-				select {
-				case sess.winch <- win:
-				default:
-					// Channel full, skip this update
-				}
+				sess.winch <- win
 			}
 			sess.Unlock()
-			
+
 			err := req.Reply(ok, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -542,7 +540,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 				ok = true
 			}
 			sess.Unlock()
-			
+
 			err := req.Reply(ok, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -563,8 +561,8 @@ type ContextKey struct {
 }
 
 var ContextKeyHASSHInfo = &ContextKey{"hassh-info"}
-
 var contextKeyEmulatePty = &ContextKey{"emulate-pty"}
+var ContextKeySession = &ContextKey{"session"}
 
 func (sess *session) EmulatedPty() bool {
 	return sess.ctx.Value(contextKeyEmulatePty) == true

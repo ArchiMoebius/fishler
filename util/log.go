@@ -114,15 +114,6 @@ func GetSessionVolumnDirectory(basepath string, directory string, sessionID stri
 	return dirpath
 }
 
-func GetSessionFileName(basepath string, sessionID string) string {
-	err := os.MkdirAll(basepath, 0750)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return fmt.Sprintf("%s/%s.log", basepath, sessionID)
-}
-
 func ByteCountDecimal(b int64) string {
 	const unit = 1000
 	if b < unit {

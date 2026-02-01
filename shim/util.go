@@ -41,24 +41,40 @@ func parsePtyRequest(s []byte) (pty glssh.Pty, ok bool) {
 	return
 }
 
-func parseWinchRequest(s []byte) (win glssh.Window, ok bool) {
-	width32, s, ok := parseUint32(s)
-	if width32 < 1 {
-		ok = false
-	}
+func parseWindow(s []byte) (win glssh.Window, rem []byte, ok bool) {
+	// 6.7.  Window Dimension Change Message
+	// When the window (terminal) size changes on the client side, it MAY
+	// send a message to the other side to inform it of the new dimensions.
+
+	//   byte      SSH_MSG_CHANNEL_REQUEST
+	//   uint32    recipient channel
+	//   string    "window-change"
+	//   boolean   FALSE
+	//   uint32    terminal width, columns
+	//   uint32    terminal height, rows
+	//   uint32    terminal width, pixels
+	//   uint32    terminal height, pixels
+	wCols, rem, ok := parseUint32(s)
 	if !ok {
 		return
 	}
-	height32, _, ok := parseUint32(s)
-	if height32 < 1 {
-		ok = false
+	hRows, rem, ok := parseUint32(rem)
+	if !ok {
+		return
 	}
+	wPixels, rem, ok := parseUint32(rem)
+	if !ok {
+		return
+	}
+	hPixels, rem, ok := parseUint32(rem)
 	if !ok {
 		return
 	}
 	win = glssh.Window{
-		Width:  int(width32),
-		Height: int(height32),
+		Width:        int(wCols),
+		Height:       int(hRows),
+		WidthPixels:  int(wPixels),
+		HeightPixels: int(hPixels),
 	}
 	return
 }
