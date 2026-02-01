@@ -240,14 +240,16 @@ func CreateRunWaitSSHContainer(hostVolumnWorkingDir string, createCfg *container
 		exitCode = result.StatusCode
 	}
 
+	// Close the stream connection to unblock the IO goroutines
+	stream.Close()
+
 	// Wait for all IO goroutines to complete
 	wg.Wait()
 
 	// Close file after all writes complete
 	f.Close()
 
-	// Now safe to close stream and docker client
-	stream.Close()
+	// Now safe to close docker client
 	dockerClient.Close()
 
 	Logger.WithFields(logrus.Fields{

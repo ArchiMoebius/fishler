@@ -413,11 +413,18 @@ func (a *app) Start() error {
 				appendRoot = false
 			}
 
+			// Determine the command to run in the container
+			cmd := sess.Command()
+			if len(cmd) == 0 {
+				// No command specified, start a shell
+				cmd = []string{"/bin/sh"}
+			}
+
 			createCfg := &container.Config{
 				Image:        rootConfig.Setting.DockerImagename,
 				Hostname:     configServe.Setting.DockerHostname,
 				User:         sess.User(),
-				Cmd:          sess.Command(),
+				Cmd:          cmd,
 				Env:          sess.Environ(),
 				Tty:          true,
 				OpenStdin:    true,
