@@ -22,6 +22,12 @@ type HASSHInfo struct {
 	RemoteAddr      net.Addr
 }
 
+type ContextKey struct {
+	name string
+}
+
+var ContextKeyHASSHInfo = &ContextKey{"hassh-info"}
+
 // parseNameList reads an SSH name-list from the buffer
 func parseNameList(data []byte, offset int) ([]string, int, error) {
 	if offset+4 > len(data) {

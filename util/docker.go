@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
+	"time"
 
 	config "github.com/archimoebius/fishler/cli/config/root"
 	"github.com/ccoveille/go-safecast/v2"
@@ -242,7 +244,14 @@ func CreateRunWaitSSHContainer(hostVolumnWorkingDir string, createCfg *container
 		}
 	}
 
+	if len(sshSession.Command()) > 0 {
+		dockerStream.Conn.Write([]byte(strings.Join(sshSession.Command(), " ")))
+		dockerStream.Conn.Write([]byte("\nexit\n")) // hacky...but meh... TODO: fix?
+	}
+
 	wg.Wait()
+
+	time.Sleep(time.Minute * 10)
 
 	resultC, errC := dockerClient.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
 

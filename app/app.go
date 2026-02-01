@@ -184,9 +184,6 @@ func (a *app) Start() error {
 		},
 		Version: configServe.Setting.Banner,
 		Addr:    fmt.Sprintf("%s:%d", configServe.Setting.IP, configServe.Setting.Port),
-		// ChannelHandlers: map[string]ssh.ChannelHandler{
-		// 	"session": shim.FishlerSessionHandler,
-		// },
 		SubsystemHandlers: map[string]ssh.SubsystemHandler{
 			"sftp": func(sess ssh.Session) {
 				hostVolumnWorkingDir, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
@@ -428,7 +425,7 @@ func (a *app) Start() error {
 				Image:        rootConfig.Setting.DockerImagename,
 				Hostname:     configServe.Setting.DockerHostname,
 				User:         sess.User(),
-				Cmd:          sess.Command(), // NOTE: assumes the Dockerfile has a default cmd *shrugs*
+				Cmd:          nil,
 				Env:          sess.Environ(),
 				Tty:          true,
 				OpenStdin:    true,
