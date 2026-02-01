@@ -104,8 +104,10 @@ func FishlerSessionHandler(srv *glssh.Server, conn *gossh.ServerConn, newChan go
 	ch, reqs, err := newChan.Accept()
 	if err != nil {
 		// TODO: trigger event callback
+		fmt.Printf("FSH Error: %v", err)
 		return
 	}
+
 	sess := &session{
 		Channel:           ch,
 		conn:              conn,
@@ -115,6 +117,7 @@ func FishlerSessionHandler(srv *glssh.Server, conn *gossh.ServerConn, newChan go
 		subsystemHandlers: srv.SubsystemHandlers,
 		ctx:               ctx,
 	}
+
 	sess.handleRequests(reqs)
 }
 
@@ -140,7 +143,11 @@ type session struct {
 }
 
 func (sess *session) Write(p []byte) (n int, err error) {
-	if sess.pty != nil {
+	sess.Lock()
+	hasPty := sess.pty != nil
+	sess.Unlock()
+
+	if hasPty {
 		m := len(p)
 		// normalize \n to \r\n when pty is accepted.
 		// this is a hardcoded shortcut since we don't support terminal modes.
@@ -150,8 +157,14 @@ func (sess *session) Write(p []byte) (n int, err error) {
 		if n > m {
 			n = m
 		}
+
+		if err != nil {
+			return n, err
+		}
+
 		return
 	}
+
 	return sess.Channel.Write(p)
 }
 
@@ -208,23 +221,35 @@ func (sess *session) LocalAddr() net.Addr {
 }
 
 func (sess *session) Environ() []string {
+	sess.Lock()
+	defer sess.Unlock()
 	return append([]string(nil), sess.env...)
 }
 
 func (sess *session) RawCommand() string {
+	sess.Lock()
+	defer sess.Unlock()
 	return sess.rawCmd
 }
 
 func (sess *session) Command() []string {
-	cmd, _ := shlex.Split(sess.rawCmd, true)
+	sess.Lock()
+	rawCmd := sess.rawCmd
+	sess.Unlock()
+	
+	cmd, _ := shlex.Split(rawCmd, true)
 	return append([]string(nil), cmd...)
 }
 
 func (sess *session) Subsystem() string {
+	sess.Lock()
+	defer sess.Unlock()
 	return sess.subsystem
 }
 
 func (sess *session) Pty() (glssh.Pty, <-chan glssh.Window, bool) {
+	sess.Lock()
+	defer sess.Unlock()
 	if sess.pty != nil {
 		return *sess.pty, sess.winch, true
 	}
@@ -233,12 +258,15 @@ func (sess *session) Pty() (glssh.Pty, <-chan glssh.Window, bool) {
 
 func (sess *session) Signals(c chan<- glssh.Signal) {
 	sess.Lock()
-	defer sess.Unlock()
 	sess.sigCh = c
-	if len(sess.sigBuf) > 0 {
+	bufCopy := append([]glssh.Signal(nil), sess.sigBuf...)
+	sess.sigBuf = nil
+	sess.Unlock()
+
+	if len(bufCopy) > 0 {
 		go func() {
-			for _, sig := range sess.sigBuf {
-				sess.sigCh <- sig
+			for _, sig := range bufCopy {
+				c <- sig
 			}
 		}()
 	}
@@ -251,10 +279,22 @@ func (sess *session) Break(c chan<- bool) {
 }
 
 func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
+	defer func() {
+		// Close winch channel when request channel closes
+		sess.Lock()
+		if sess.winch != nil {
+			close(sess.winch)
+			sess.winch = nil
+		}
+		sess.Unlock()
+	}()
+
 	for req := range reqs {
 		switch req.Type {
 		case "shell", "exec":
+			sess.Lock()
 			if sess.handled {
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -282,6 +322,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			// accepting the session.
 			if sess.sessReqCb != nil && !sess.sessReqCb(sess, req.Type) {
 				sess.rawCmd = ""
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -291,6 +332,8 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			}
 
 			sess.handled = true
+			sess.Unlock()
+			
 			err := req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -300,7 +343,9 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 				sess.handler(sess)
 			}()
 		case "subsystem":
+			sess.Lock()
 			if sess.handled {
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -326,6 +371,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			// accepting the session.
 			if sess.sessReqCb != nil && !sess.sessReqCb(sess, req.Type) {
 				sess.rawCmd = ""
+				sess.Unlock()
 				err = req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -339,6 +385,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 				handler = sess.subsystemHandlers["default"]
 			}
 			if handler == nil {
+				sess.Unlock()
 				err = req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -348,6 +395,8 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			}
 
 			sess.handled = true
+			sess.Unlock()
+			
 			err = req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -362,7 +411,9 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 
 			}()
 		case "env":
+			sess.Lock()
 			if sess.handled {
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -384,6 +435,8 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			}).Info("session env event")
 
 			sess.env = append(sess.env, envkv)
+			sess.Unlock()
+			
 			err = req.Reply(true, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -404,7 +457,9 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			}
 			sess.Unlock()
 		case "pty-req":
+			sess.Lock()
 			if sess.handled || sess.pty != nil {
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -414,6 +469,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			}
 			ptyReq, ok := parsePtyRequest(req.Payload)
 			if !ok {
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -424,6 +480,7 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			if sess.ptyCb != nil {
 				ok := sess.ptyCb(sess.ctx, ptyReq)
 				if !ok {
+					sess.Unlock()
 					err := req.Reply(false, nil)
 					if err != nil {
 						util.Logger.Error(err)
@@ -435,17 +492,17 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			sess.pty = &ptyReq
 			sess.winch = make(chan glssh.Window, 1)
 			sess.winch <- ptyReq.Window
-			defer func() {
-				// when reqs is closed
-				close(sess.winch)
-			}()
+			sess.Unlock()
+			
 			err := req.Reply(ok, nil)
 			if err != nil {
 				util.Logger.Error(err)
 			}
 
 		case "window-change":
-			if sess.pty == nil {
+			sess.Lock()
+			if sess.pty == nil || sess.winch == nil {
+				sess.Unlock()
 				err := req.Reply(false, nil)
 				if err != nil {
 					util.Logger.Error(err)
@@ -456,8 +513,14 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 			win, ok := parseWinchRequest(req.Payload)
 			if ok {
 				sess.pty.Window = win
-				sess.winch <- win
+				select {
+				case sess.winch <- win:
+				default:
+					// Channel full, skip this update
+				}
 			}
+			sess.Unlock()
+			
 			err := req.Reply(ok, nil)
 			if err != nil {
 				util.Logger.Error(err)
@@ -478,12 +541,13 @@ func (sess *session) handleRequests(reqs <-chan *gossh.Request) {
 				sess.breakCh <- true
 				ok = true
 			}
+			sess.Unlock()
+			
 			err := req.Reply(ok, nil)
 			if err != nil {
 				util.Logger.Error(err)
 			}
 
-			sess.Unlock()
 		default:
 			err := req.Reply(false, nil)
 			if err != nil {

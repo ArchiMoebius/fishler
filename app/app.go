@@ -9,9 +9,11 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	rootConfig "github.com/archimoebius/fishler/cli/config/root"
@@ -47,6 +49,7 @@ type app struct {
 	FishyFSMgr    *fishyfs.Manager
 	cleanupCtx    context.Context
 	cleanupCancel context.CancelFunc
+	beamMutex     sync.Mutex
 }
 
 // NewApplication creates a new application
@@ -118,16 +121,23 @@ func (a *app) BeamEvent(
 		"SourcePort":      event.SourcePort,
 	}).Debug("beaming event")
 
-	if err := a.BeamClient.SendEvent(event); err != nil {
-		log.Printf("event send failure - checking connection: %v", err)
+	a.beamMutex.Lock()
+	err := a.BeamClient.SendEvent(event)
+	if err != nil {
+		log.Printf("event send failure - reconnecting: %v", err)
 
 		if err := a.BeamClient.Reconnect(); err != nil {
-			log.Fatalf("Failed to reconnect to uplink server: %v", err)
+			a.beamMutex.Unlock()
+			log.Printf("Failed to reconnect to uplink server: %v", err)
+			return
 		}
 
-		if err := a.BeamClient.SendEvent(event); err != nil {
-			log.Printf("Failed to send event: %v", err)
-		}
+		err = a.BeamClient.SendEvent(event)
+	}
+	a.beamMutex.Unlock()
+
+	if err != nil {
+		log.Printf("Failed to send event: %v", err)
 	}
 }
 
@@ -182,25 +192,13 @@ func (a *app) Start() error {
 		},
 		SubsystemHandlers: map[string]ssh.SubsystemHandler{
 			"sftp": func(sess ssh.Session) {
-				// Get or create FUSE mount for this user
-				mountPoint, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
+				hostVolumnWorkingDir, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
 				if err != nil {
 					util.Logger.WithError(err).Error("failed to get mount point")
 					_ = sess.Exit(1)
 					return
 				}
 
-				// Get mirror directory for trash
-				mirrorDir, err := a.FishyFSMgr.GetMirrorDir(sess.Context().User())
-				if err != nil {
-					util.Logger.WithError(err).Error("failed to get mirror directory")
-					_ = sess.Exit(1)
-					return
-				}
-
-				// SFTP will use the FUSE mount point as the working directory
-				var hostVolumnWorkingDir = mountPoint
-				var hostVolumnTrashDir = mirrorDir
 				var dockerVolumnWorkingDir = fmt.Sprintf("/home/%s", sess.User())
 
 				if sess.User() == "root" {
@@ -226,15 +224,11 @@ func (a *app) Start() error {
 						_ = filepath.Walk(hostVolumnWorkingDir, readSize)
 
 						sizeMB := dirSize / 1024 / 1024
+
 						return sizeMB <= configServe.Setting.DockerDiskLimit
 					},
-					GetDockerVolumnPath: func(fs FishlerSFTP.FishlerFS, p string, trash bool) (string, error) {
+					GetDockerVolumnPath: func(fs FishlerSFTP.FishlerFS, p string) (string, error) {
 						var replace = filepath.Clean(hostVolumnWorkingDir)
-
-						if trash { // copy anything the user rm/rmdir to a 'trash' folder - UUID to mitigate collisions
-							replace = filepath.Join(hostVolumnTrashDir, uuid.New().String())
-							_ = os.MkdirAll(replace, 0750)
-						}
 
 						p = filepath.Clean(strings.ReplaceAll(filepath.Clean(p), dockerVolumnWorkingDir, replace))
 
@@ -345,7 +339,7 @@ func (a *app) Start() error {
 			authenticated := false
 			password := ""
 
-			answers, err := challenger(ctx.User(), "Please authenticate", questions, echos)
+			answers, err := challenger(strings.Split(ctx.User(), "\n")[0], "Please authenticate", questions, echos)
 
 			if err != nil || len(answers) == 0 {
 				util.Logger.WithFields(logrus.Fields{
@@ -404,6 +398,7 @@ func (a *app) Start() error {
 			}).Info("session event")
 
 			mountPoint, err := a.FishyFSMgr.GetMountPoint(sess.Context().User())
+
 			if err != nil {
 				util.Logger.WithError(err).Error("failed to get mount point")
 				_ = sess.Exit(1)
@@ -411,8 +406,11 @@ func (a *app) Start() error {
 			}
 
 			var workingDir = fmt.Sprintf("/home/%s", sess.User())
+
+			var appendRoot = true
 			if sess.User() == "root" {
-				workingDir = "/root/"
+				workingDir = "/root"
+				appendRoot = false
 			}
 
 			createCfg := &container.Config{
@@ -431,30 +429,28 @@ func (a *app) Start() error {
 				Labels:       map[string]string{"fishler": "fishler"},
 			}
 			hostCfg := &container.HostConfig{
-				AutoRemove:    false,
+				AutoRemove:    true,
 				NetworkMode:   "none",
-				DNS:           []string{"127.0.0.1"},
-				DNSSearch:     []string{"local"},
+				DNS:           []string{},
+				DNSSearch:     []string{},
 				Privileged:    false,
-				ShmSize:       4096,
-				ReadonlyPaths: []string{"/bin", "/dev", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var", "/root", "/tmp"},
+				ShmSize:       256,
+				ReadonlyPaths: []string{"/bin", "/dev", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var", "/tmp"},
 				Resources: container.Resources{
 					Memory: 1024 * 1024 * int64(configServe.Setting.DockerMemoryLimit),
 				},
 			}
 
-			// Mount the FUSE filesystem as a volumn for the user's home directory in the container
-			volumeBinding := fmt.Sprintf("%s:%s", mountPoint, workingDir)
+			if appendRoot {
+				hostCfg.ReadonlyPaths = append(hostCfg.ReadonlyPaths, "/root")
+			}
+
 			if len(configServe.Setting.Volumns) > 0 {
-				configServe.Setting.Volumns = append(configServe.Setting.Volumns, volumeBinding)
 				hostCfg.Binds = configServe.Setting.Volumns
-			} else {
-				hostCfg.Binds = []string{volumeBinding}
 			}
 
 			networkCfg := &network.NetworkingConfig{}
-			status, cleanup, err := util.CreateRunWaitSSHContainer(createCfg, hostCfg, networkCfg, sess)
-			defer cleanup()
+			status, err := util.CreateRunWaitSSHContainer(mountPoint, createCfg, hostCfg, networkCfg, sess)
 
 			if err != nil {
 				util.Logger.Error(err)
@@ -496,14 +492,6 @@ func (a *app) Start() error {
 		},
 	}
 
-	if configServe.Setting.MaxTimeout > 0 {
-		s.MaxTimeout = configServe.Setting.MaxTimeout
-	}
-
-	if configServe.Setting.IdleTimeout > 0 {
-		s.IdleTimeout = configServe.Setting.IdleTimeout
-	}
-
 	signer, err := util.GetKeySigner()
 	if err != nil {
 		util.Logger.Error(err)
@@ -523,5 +511,18 @@ func (a *app) Start() error {
 
 	util.Logger.Infof("Listening on %s", ln.Addr().String())
 
-	return s.Serve(ln)
+	go func() {
+		_ = s.Serve(ln)
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Println("Press Ctrl+C to stop.")
+
+	sig := <-sigCh
+
+	log.Printf("Received signal %s, shutting down...", sig)
+
+	return nil
 }

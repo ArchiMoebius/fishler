@@ -10,7 +10,7 @@ import (
 )
 
 func (fs FishlerFS) Filewrite(request *sftp.Request) (io.WriterAt, error) {
-	p, err := fs.GetDockerVolumnPath(fs, request.Filepath, false)
+	p, err := fs.GetDockerVolumnPath(fs, request.Filepath)
 	if err != nil {
 		fs.logError(request, "sftp write error", err)
 		return nil, sftp.ErrSSHFxNoSuchFile

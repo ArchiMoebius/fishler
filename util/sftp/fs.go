@@ -10,7 +10,7 @@ import (
 )
 
 type FishlerFS struct {
-	GetDockerVolumnPath func(fs FishlerFS, p string, trash bool) (string, error)
+	GetDockerVolumnPath func(fs FishlerFS, p string) (string, error)
 	HasDiskSpace        func(fs FishlerFS) bool
 	Lock                *sync.Mutex
 	User                string

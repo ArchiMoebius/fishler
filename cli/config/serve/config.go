@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/fatih/structs"
 	"github.com/leebenson/conform"
@@ -32,8 +31,6 @@ var initial = &setting{
 	CryptoBasepath:             "/opt/fishler/crypto",
 	DockerMemoryLimit:          8,
 	DockerDiskLimit:            100, // MB
-	IdleTimeout:                0 * time.Second,
-	MaxTimeout:                 0 * time.Second,
 	AccountFilepath:            "",
 	PasswordFilepath:           "",
 	Account:                    "",
@@ -47,23 +44,21 @@ var initial = &setting{
 // `struct` => fatih structs tag
 // `env` => environment variable name
 type setting struct {
-	Banner                     string        `mapstructure:"banner" structs:"banner" env:"FISHLER_BANNER"`
-	DockerMemoryLimit          int           `mapstructure:"docker-memory-limit" structs:"docker-memory-limit" env:"FISHLER_DOCKER_MEMORY_LIMIT"`
-	DockerDiskLimit            int64         `mapstructure:"docker-disk-limit" structs:"docker-disk-limit" env:"FISHLER_DOCKER_DISK_LIMIT"`
-	IdleTimeout                time.Duration `mapstructure:"ssh-idle-timeout" structs:"ssh-idle-timeout" env:"FISHLER_SSH_IDLE_TIMEOUT"`
-	MaxTimeout                 time.Duration `mapstructure:"ssh-max-timeout" structs:"ssh-max-timeout" env:"FISHLER_SSH_MAX_TIMEOUT"`
-	Volumns                    []string      `mapstructure:"volumn" structs:"volumn"`
-	CryptoBasepath             string        `mapstructure:"crypto-basepath" structs:"crypto-basepath" env:"FISHLER_CRYPTO_BASEPATH"`
-	DockerHostname             string        `mapstructure:"docker-hostname" structs:"docker-hostname" env:"FISHLER_DOCKER_HOSTNAME"`
-	Port                       int           `mapstructure:"port" structs:"port" env:"FISHLER_PORT"`
-	IP                         string        `mapstructure:"ip" structs:"ip" env:"FISHLER_IP"`
-	RandomConnectionSleepCount int           `mapstructure:"random-sleep-count" structs:"random-sleep-count" env:"FISHLER_SSH_CONNECT_SLEEP_COUNT"`
-	AccountFilepath            string        `mapstructure:"account-file" structs:"account-file" env:"FISHLER_ACCOUNT_FILE"`
-	PasswordFilepath           string        `mapstructure:"password-file" structs:"password-file" env:"FISHLER_PASSWORD_FILE"`
-	Account                    string        `mapstructure:"account" structs:"account" env:"FISHLER_ACCOUNT"`
-	Password                   string        `mapstructure:"password" structs:"password" env:"FISHLER_PASSWORD"`
-	AnyAccount                 bool          `mapstructure:"any-account" structs:"any-account" env:"FISHLER_ANY_ACCOUNT"`
-	NoAccount                  bool          `mapstructure:"no-account" structs:"no-account" env:"FISHLER_NO_ACCOUNT"`
+	Banner                     string   `mapstructure:"banner" structs:"banner" env:"FISHLER_BANNER"`
+	DockerMemoryLimit          int      `mapstructure:"docker-memory-limit" structs:"docker-memory-limit" env:"FISHLER_DOCKER_MEMORY_LIMIT"`
+	DockerDiskLimit            int64    `mapstructure:"docker-disk-limit" structs:"docker-disk-limit" env:"FISHLER_DOCKER_DISK_LIMIT"`
+	Volumns                    []string `mapstructure:"volumn" structs:"volumn"`
+	CryptoBasepath             string   `mapstructure:"crypto-basepath" structs:"crypto-basepath" env:"FISHLER_CRYPTO_BASEPATH"`
+	DockerHostname             string   `mapstructure:"docker-hostname" structs:"docker-hostname" env:"FISHLER_DOCKER_HOSTNAME"`
+	Port                       int      `mapstructure:"port" structs:"port" env:"FISHLER_PORT"`
+	IP                         string   `mapstructure:"ip" structs:"ip" env:"FISHLER_IP"`
+	RandomConnectionSleepCount int      `mapstructure:"random-sleep-count" structs:"random-sleep-count" env:"FISHLER_SSH_CONNECT_SLEEP_COUNT"`
+	AccountFilepath            string   `mapstructure:"account-file" structs:"account-file" env:"FISHLER_ACCOUNT_FILE"`
+	PasswordFilepath           string   `mapstructure:"password-file" structs:"password-file" env:"FISHLER_PASSWORD_FILE"`
+	Account                    string   `mapstructure:"account" structs:"account" env:"FISHLER_ACCOUNT"`
+	Password                   string   `mapstructure:"password" structs:"password" env:"FISHLER_PASSWORD"`
+	AnyAccount                 bool     `mapstructure:"any-account" structs:"any-account" env:"FISHLER_ANY_ACCOUNT"`
+	NoAccount                  bool     `mapstructure:"no-account" structs:"no-account" env:"FISHLER_NO_ACCOUNT"`
 	accounts                   map[string][]string
 	passwords                  map[string]bool
 }
@@ -105,9 +100,6 @@ func CommandInit(command *cobra.Command) error {
 
 	command.PersistentFlags().Int("docker-memory-limit", initial.DockerMemoryLimit, "The amount of memory (in MB) that each container should get when a user obtains a session")
 	command.PersistentFlags().Int("docker-disk-limit", int(initial.DockerDiskLimit), "The amount of disk space (in MB) that each container should limit a container to")
-
-	command.PersistentFlags().Duration("ssh-idle-timeout", initial.IdleTimeout, "If a session is idle for this many seconds - terminate it")
-	command.PersistentFlags().Duration("ssh-max-timeout", initial.MaxTimeout, "Terminate the session after this many seconds - if 0 no session time limit")
 
 	command.PersistentFlags().String("crypto-basepath", initial.CryptoBasepath, "The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server")
 	command.PersistentFlags().String("docker-hostname", initial.DockerHostname, "The hostname used in the docker container")

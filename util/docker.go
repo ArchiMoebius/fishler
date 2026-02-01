@@ -7,15 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
-	"time"
+	"sync"
 
 	config "github.com/archimoebius/fishler/cli/config/root"
-	configServe "github.com/archimoebius/fishler/cli/config/serve"
 	"github.com/ccoveille/go-safecast/v2"
 	"github.com/charmbracelet/ssh"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -23,14 +20,8 @@ import (
 )
 
 var ErrorContainerNameNotFound = errors.New("container name not found")
-var containerConnectionMap = make(map[string]int)
 
-func GetContainerName(remoteIP string) string {
-	return fmt.Sprintf("fishler_%s", strings.Split(remoteIP, ":")[0])
-}
-
-func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.HostConfig, networkCfg *network.NetworkingConfig, sess ssh.Session) (exitCode int64, cleanup func(), err error) {
-	var hostVolumnWorkingDir = GetSessionVolumnDirectory(config.Setting.LogBasepath, "data", sess.User())
+func CreateRunWaitSSHContainer(hostVolumnWorkingDir string, createCfg *container.Config, hostCfg *container.HostConfig, networkCfg *network.NetworkingConfig, sess ssh.Session) (exitCode int64, err error) {
 	var dockerVolumnWorkingDir = fmt.Sprintf("/home/%s", sess.User())
 
 	if sess.User() == "root" {
@@ -49,11 +40,11 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 
 	err = BuildFishler(dockerClient, ctx, false)
 	if err != nil {
+		dockerClient.Close()
 		panic(err)
 	}
 
 	exitCode = 255
-	cleanup = func() {}
 
 	hostCfg.Mounts = append(hostCfg.Mounts, mount.Mount{
 		ReadOnly: false,
@@ -62,95 +53,84 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 		Target:   dockerVolumnWorkingDir,
 	})
 
-	containerName := GetContainerName(sess.RemoteAddr().String())
+	containerName := sess.Context().SessionID()
+	Logger.Debugf("Requesting container: %s\n", containerName)
 
-	containerID, err := getContainerIdFromName(ctx, dockerClient, containerName)
-	if err != nil && !errors.Is(err, ErrorContainerNameNotFound) {
-		Logger.Error(err)
-		return exitCode, cleanup, err
+	createResponse, e := dockerClient.ContainerCreate(ctx, createCfg, hostCfg, networkCfg, nil, containerName)
+	if e != nil {
+		Logger.Error(e)
+		dockerClient.Close()
+		return exitCode, e
 	}
 
-	if containerID == "" { // container does not exist exists
-		Logger.Infof("create container event %s", containerID)
+	containerID := createResponse.ID
+	Logger.Debugf("Created ContainerID: %s\n", containerID)
 
-		createResponse, e := dockerClient.ContainerCreate(ctx, createCfg, hostCfg, networkCfg, nil, containerName)
-		if e != nil {
-			Logger.Error(e)
-			return exitCode, cleanup, e
-		}
+	profiletarbuffer, e := GetProfileBuffer(sess.User())
+	if e != nil {
+		Logger.Error(e)
+		dockerClient.Close()
+		return exitCode, e
+	}
 
-		containerID = createResponse.ID
-		Logger.Debugf("Created ContainerID: %s\n", containerID)
+	e = dockerClient.CopyToContainer(ctx, containerID, "/etc/", bytes.NewReader(profiletarbuffer), container.CopyToContainerOptions{
+		AllowOverwriteDirWithFile: true,
+		CopyUIDGID:                false,
+	})
+	if e != nil {
+		Logger.Error(e)
+		dockerClient.Close()
+		return exitCode, e
+	}
 
-		profiletarbuffer, e := GetProfileBuffer(sess.User())
-		if e != nil {
-			Logger.Error(e)
-			return exitCode, cleanup, e
-		}
+	e = dockerClient.ContainerStart(ctx, containerID, container.StartOptions{})
+	if e != nil {
+		Logger.Error(e)
+		dockerClient.Close()
+		return exitCode, e
+	}
 
-		e = dockerClient.CopyToContainer(ctx, containerID, "/etc/", bytes.NewReader(profiletarbuffer), container.CopyToContainerOptions{
-			AllowOverwriteDirWithFile: true,
-			CopyUIDGID:                false,
-		})
-		if e != nil {
-			Logger.Error(e)
-			return exitCode, cleanup, e
-		}
+	execResponse, e := dockerClient.ContainerExecCreate(ctx, containerID, container.ExecOptions{
+		User:         "root",
+		Tty:          true,
+		AttachStdin:  false,
+		AttachStderr: false,
+		AttachStdout: false,
+		Cmd:          []string{"/fixme", sess.User()},
+	})
+	if e != nil {
+		Logger.Error(e)
+		_ = dockerClient.ContainerKill(ctx, containerID, "")
+		dockerClient.Close()
+		return exitCode, e
+	}
 
-		e = dockerClient.ContainerStart(ctx, containerID, container.StartOptions{})
-		if e != nil {
-			Logger.Error(e)
-			return exitCode, cleanup, e
-		}
-
-		execResponse, e := dockerClient.ContainerExecCreate(ctx, containerID, container.ExecOptions{
-			User:         "root",
-			Tty:          true,
-			AttachStdin:  false,
-			AttachStderr: false,
-			AttachStdout: false,
-			Cmd:          []string{"/fixme", sess.User()},
-		})
-		if e != nil {
-			Logger.Error(e)
-			return exitCode, cleanup, e
-		}
-
-		hijackedResponse, e := dockerClient.ContainerExecAttach(
-			ctx,
-			execResponse.ID,
-			container.ExecAttachOptions{
-				Detach: false,
-				Tty:    true,
-			},
-		)
-		if e != nil {
-			Logger.Error(err)
-			return exitCode, cleanup, e
-		}
-		if config.Setting.Debug {
-			Logger.Info("Container Exec Init Output: ")
-			b := make([]byte, 1)
-			for {
-				_, err := hijackedResponse.Reader.Read(b)
-				fmt.Printf("%s", b)
-				if err == io.EOF {
-					break
-				}
+	hijackedResponse, e := dockerClient.ContainerExecAttach(
+		ctx,
+		execResponse.ID,
+		container.ExecAttachOptions{
+			Detach: false,
+			Tty:    true,
+		},
+	)
+	if e != nil {
+		Logger.Error(e)
+		_ = dockerClient.ContainerKill(ctx, containerID, "")
+		dockerClient.Close()
+		return exitCode, e
+	}
+	if config.Setting.Debug {
+		Logger.Info("Container Exec Init Output: ")
+		b := make([]byte, 1)
+		for {
+			_, err := hijackedResponse.Reader.Read(b)
+			fmt.Printf("%s", b)
+			if err == io.EOF {
+				break
 			}
 		}
-		hijackedResponse.Close()
-
-		if _, found := containerConnectionMap[containerID]; found {
-			containerConnectionMap[containerID] = 1
-		}
-	} else {
-		Logger.Infof("container reconnect event %s", containerID)
-
-		if _, found := containerConnectionMap[containerID]; found {
-			containerConnectionMap[containerID] += 1
-		}
 	}
+	hijackedResponse.Close()
 
 	stream, err := dockerClient.ContainerAttach(
 		ctx,
@@ -160,12 +140,14 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 			Stdout: createCfg.AttachStdout,
 			Stderr: createCfg.AttachStderr,
 			Stream: true,
-			Logs:   false, // TODO: include all of STDOUT from 1'st connection for 2'nd connection or no
+			Logs:   false,
 		},
 	)
 	if err != nil {
 		Logger.Error(err)
-		return
+		_ = dockerClient.ContainerKill(ctx, containerID, "")
+		dockerClient.Close()
+		return exitCode, err
 	}
 
 	logfile := GetSessionFileName(fmt.Sprintf("/%s/session/", config.Setting.LogBasepath), sess.Context().SessionID())
@@ -173,34 +155,20 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 
 	if err != nil {
 		Logger.Error(err)
-	}
-
-	cleanup = func() {
-		err = f.Close()
-
-		if err != nil {
-			Logger.Error(err)
-		}
-
-		containerConnectionMap[containerID] -= 1
-
-		if containerConnectionMap[containerID] <= 0 {
-			delete(containerConnectionMap, containerID)
-
-			err := CleanIfContainerExists(ctx, dockerClient, containerID)
-
-			if err != nil {
-				Logger.Error(err)
-				return
-			}
-		}
 		stream.Close()
+		_ = dockerClient.ContainerKill(ctx, containerID, "")
+		dockerClient.Close()
+		return exitCode, err
 	}
 
 	mw := io.MultiWriter(sess, f)
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go func() {
-		// From container to session/logfile - Copy copies from src (sess) to dst (stream.Conn) until either EOF is reached on src or an error occurs.
+		defer wg.Done()
+		// From container to session/logfile
 		bytes, err := io.Copy(mw, stream.Reader)
 
 		if err != nil {
@@ -214,8 +182,8 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	}()
 
 	go func() {
-		defer stream.CloseWrite()
-		// From session to container - Copy copies from src (sess) to dst (stream.Conn) until either EOF is reached on src or an error occurs.
+		defer wg.Done()
+		// From session to container
 		bytes, err := io.Copy(stream.Conn, sess)
 
 		if err != nil {
@@ -229,59 +197,38 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	}()
 
 	if createCfg.Tty {
-		_, winCh, _ := sess.Pty()
-		go func() {
-			var height uint = 0
-			var width uint = 0
+		_, winCh, hasPty := sess.Pty()
+		if hasPty && winCh != nil {
+			go func() {
+				var height uint = 0
+				var width uint = 0
 
-			for win := range winCh {
-				width, err = safecast.Convert[uint](win.Width)
-				if err != nil {
-					width = 1024
+				for win := range winCh {
+					width, err = safecast.Convert[uint](win.Width)
+					if err != nil {
+						width = 1024
+					}
+					height, err = safecast.Convert[uint](win.Height)
+					if err != nil {
+						height = 768
+					}
+
+					err := dockerClient.ContainerResize(ctx, containerID, container.ResizeOptions{
+						Height: height,
+						Width:  width,
+					})
+					if err != nil {
+						// Container probably stopped, exit resize loop
+						break
+					}
 				}
-				height, err = safecast.Convert[uint](win.Height)
-				if err != nil {
-					height = 768
-				}
 
-				err := dockerClient.ContainerResize(ctx, containerID, container.ResizeOptions{
-					Height: height,
-					Width:  width,
-				})
-				if err != nil {
-					Logger.Error(err)
-					break
-				}
-			}
-
-			Logger.WithFields(logrus.Fields{
-				"address": sess.RemoteAddr().String(),
-				"window":  fmt.Sprintf("%dx%d", width, height),
-			}).Info("window event")
-		}()
-	}
-
-	if configServe.Setting.IdleTimeout > 0 || configServe.Setting.MaxTimeout > 0 {
-		go func() {
-			i := 0
-			for {
-				i += 1
-				select {
-				case <-time.After(time.Second):
-					continue
-				case <-sess.Context().Done():
-
-					Logger.WithFields(logrus.Fields{
-						"address":  sess.RemoteAddr().String(),
-						"username": sess.User(),
-						"duration": i,
-					}).Info("metadata exit event")
-
-					cleanup()
-					return
-				}
-			}
-		}()
+				Logger.WithFields(logrus.Fields{
+					"address": sess.RemoteAddr().String(),
+					"window":  fmt.Sprintf("%dx%d", width, height),
+				}).Info("window event")
+			}()
+		}
 	}
 
 	resultC, errC := dockerClient.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
@@ -289,56 +236,24 @@ func CreateRunWaitSSHContainer(createCfg *container.Config, hostCfg *container.H
 	select {
 	case err = <-errC:
 		Logger.Error(err)
-		return
 	case result := <-resultC:
 		exitCode = result.StatusCode
 	}
+
+	// Wait for all IO goroutines to complete
+	wg.Wait()
+
+	// Close file after all writes complete
+	f.Close()
+
+	// Now safe to close stream and docker client
+	stream.Close()
+	dockerClient.Close()
 
 	Logger.WithFields(logrus.Fields{
 		"address":  sess.RemoteAddr().String(),
 		"exitcode": exitCode,
 	}).Info("exit event")
 
-	return
-}
-
-func CleanIfContainerExists(ctx context.Context, client *client.Client, containerID string) error {
-	_, err := client.ContainerInspect(ctx, containerID)
-
-	if err == nil { // container exists
-
-		err = client.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func getContainerIdFromName(ctx context.Context, client *client.Client, containerName string) (string, error) {
-
-	filters := filters.NewArgs()
-	filters.Add("label", "fishler")
-
-	containers, err := client.ContainerList(context.Background(), container.ListOptions{
-		Size:    false,
-		All:     false,
-		Filters: filters,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	var cname = fmt.Sprintf("/%s", containerName)
-
-	for i := 0; i < len(containers); i++ {
-
-		if strings.EqualFold(cname, containers[i].Names[0]) {
-			return containers[i].ID, nil
-		}
-	}
-
-	return "", ErrorContainerNameNotFound
+	return exitCode, nil
 }
