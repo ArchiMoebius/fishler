@@ -184,7 +184,7 @@ func CreateRunWaitSSHContainer(hostVolumnWorkingDir string, createCfg *container
 			"bytes":   ByteCountDecimal(bytes),
 		}).Info("metadata container to session")
 
-		sshSession.Close()
+		_ = sshSession.Close()
 	}()
 
 	go func() {
@@ -245,8 +245,8 @@ func CreateRunWaitSSHContainer(hostVolumnWorkingDir string, createCfg *container
 	}
 
 	if len(sshSession.Command()) > 0 {
-		dockerStream.Conn.Write([]byte(strings.Join(sshSession.Command(), " ")))
-		dockerStream.Conn.Write([]byte("\nexit\n")) // hacky...but meh... TODO: fix?
+		_, err = dockerStream.Conn.Write([]byte(strings.Join(sshSession.Command(), " ")))
+		_, err = dockerStream.Conn.Write([]byte("\nexit\n")) // hacky...but meh... TODO: fix?
 	}
 
 	wg.Wait()
