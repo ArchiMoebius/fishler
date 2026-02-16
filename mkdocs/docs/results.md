@@ -6,7 +6,7 @@ Example of the web dashboard before I started blocking by HASSH:
 
 Example of the web dashboard after I started blocking by HASSH:
 
-<img src="https://raw.githubusercontent.com/ArchiMoebius/fishler/main/mkdocs/docs/images/after_blocking_by_hassh" alt="after_blocking_by_hassh">
+<img src="https://raw.githubusercontent.com/ArchiMoebius/fishler/main/mkdocs/docs/images/after_blocking_by_hassh.png" alt="after_blocking_by_hassh.png">
 
 # Stats
 
