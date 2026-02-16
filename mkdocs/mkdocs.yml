@@ -11,13 +11,13 @@ plugins:
       minify_html: true
 
 repo_url: https://github.com/archimoebius/fishler
-repo_name: Mailpipe
+repo_name: Fishler
 
-site_name: Mailpipe
+site_name: Fishler
 site_url: https://archimoebius.github.io/fishler
 site_description: "Catch those shell larpers"
 site_author: ArchiMoebius
-copyright: Copyright &copy; 2021 - 2023 ArchiMoebius
+copyright: Copyright &copy; ArchiMoebius
 
 theme:
   include_search_page: false
@@ -61,6 +61,8 @@ nav:
       - About: "about.md"
   - Setup: "setup.md"
   - Usage: "usage/fishler.md"
+  - Example: "example.md"
+  - Results: "results.md"
   - Issue Tracker: "https://github.com/archimoebius/fishler/issues"
 
 extra_css:
@@ -71,7 +73,7 @@ extra_javascript:
   - javascripts/tablesort.js
 
 extra:
-  version: 2023.11.11
+  version: 2026.02.16
   generator: true
   social:
     - icon: fontawesome/brands/github
