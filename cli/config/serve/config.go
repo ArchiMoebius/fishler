@@ -56,7 +56,7 @@ type setting struct {
 	AccountFilepath            string   `mapstructure:"account-file" structs:"account-file" env:"FISHLER_ACCOUNT_FILE"`
 	PasswordFilepath           string   `mapstructure:"password-file" structs:"password-file" env:"FISHLER_PASSWORD_FILE"`
 	Account                    string   `mapstructure:"account" structs:"account" env:"FISHLER_ACCOUNT"`
-	Password                   string   `mapstructure:"password" structs:"password" env:"FISHLER_PASSWORD"`
+	Password                   string   `mapstructure:"password" structs:"password" env:"FISHLER_PASSWORD"` // #nosec
 	AnyAccount                 bool     `mapstructure:"any-account" structs:"any-account" env:"FISHLER_ANY_ACCOUNT"`
 	NoAccount                  bool     `mapstructure:"no-account" structs:"no-account" env:"FISHLER_NO_ACCOUNT"`
 	accounts                   map[string][]string

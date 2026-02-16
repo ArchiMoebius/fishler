@@ -44,12 +44,13 @@ type Application interface {
 
 // app is the implementation of the application
 type app struct {
-	BeamClient    *client.BeamClient
-	ServiceUUID   []byte
-	FishyFSMgr    *fishyfs.Manager
-	cleanupCtx    context.Context
-	cleanupCancel context.CancelFunc
-	beamMutex     sync.Mutex
+	BeamClient     *client.BeamClient
+	ServiceUUID    []byte
+	FishyFSMgr     *fishyfs.Manager
+	cleanupCtx     context.Context
+	cleanupCancel  context.CancelFunc
+	beamMutex      sync.Mutex
+	HASSHBlockList map[string]string
 }
 
 func NewApplication() Application {
@@ -63,12 +64,15 @@ func NewApplication() Application {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	app := &app{
-		BeamClient:    nil,
-		ServiceUUID:   b,
-		FishyFSMgr:    mgr,
-		cleanupCtx:    ctx,
-		cleanupCancel: cancel,
+		BeamClient:     nil,
+		ServiceUUID:    b,
+		FishyFSMgr:     mgr,
+		cleanupCtx:     ctx,
+		cleanupCancel:  cancel,
+		HASSHBlockList: make(map[string]string),
 	}
+
+	// EXAMPLE: app.HASSHBlockList["1b8acd46a07d2dc9854db9ec4044c45c"] = "" // SSH-2.0-russh_0.51.1
 
 	go mgr.CleanupIdleMounts(ctx)
 
@@ -170,7 +174,7 @@ func (a *app) Start() error {
 		ConnCallback: func(ctx ssh.Context, conn net.Conn) net.Conn {
 			return &shim.HASSHConnectionWrapper{
 				Conn: conn,
-				OnCapture: func(info *shim.HASSHInfo) {
+				OnCapture: func(info *shim.HASSHInfo) bool {
 					util.Logger.WithFields(logrus.Fields{
 						"client": info.RemoteAddr,
 						"SSH ID": info.ClientID,
@@ -178,6 +182,12 @@ func (a *app) Start() error {
 					}).Info("HASSH Event")
 
 					ctx.SetValue(shim.ContextKeyHASSHInfo, info)
+
+					if _, ok := a.HASSHBlockList[info.Hash]; ok {
+						return true
+					}
+
+					return false
 				},
 				Buffer: make([]byte, 0, 8192),
 			}
@@ -444,7 +454,7 @@ func (a *app) Start() error {
 				Privileged:    false,
 				ShmSize:       1024,
 				ConsoleSize:   [2]uint{1024, 768},
-				ReadonlyPaths: []string{"/bin", "/dev", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var", "/tmp"},
+				ReadonlyPaths: []string{"/bin", "/dev", "/lib", "/media", "/mnt", "/opt", "/run", "/sbin", "/srv", "/sys", "/usr", "/var"},
 				Resources: container.Resources{
 					Memory: 1024 * 1024 * int64(configServe.Setting.DockerMemoryLimit),
 				},

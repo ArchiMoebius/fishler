@@ -142,7 +142,7 @@ func calculateHASSH(kex, ciphers, macs, compression []string) string {
 // HASSHConnectionWrapper wraps a connection to capture SSH handshake
 type HASSHConnectionWrapper struct {
 	net.Conn
-	OnCapture   func(*HASSHInfo)
+	OnCapture   func(*HASSHInfo) bool
 	Buffer      []byte
 	Captured    bool
 	VersionRead bool
@@ -212,7 +212,9 @@ func (c *HASSHConnectionWrapper) parse() {
 				c.Captured = true
 
 				if c.OnCapture != nil {
-					c.OnCapture(info)
+					if c.OnCapture(info) {
+						_ = c.Close()
+					}
 				}
 			}
 		}
