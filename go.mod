@@ -1,6 +1,6 @@
 module github.com/archimoebius/fishler
 
-go 1.25.6
+go 1.25.7
 
 require (
 	github.com/ArchiMoebius/uplink v0.1.4
