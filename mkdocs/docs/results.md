@@ -458,3 +458,61 @@ LIMIT 30;
 | 161.35.84.94    | 3                | 77               | 116            | Brute Force    |
 | 188.166.65.100  | 10               | 70               | 115            | Brute Force    |
 | 64.23.137.202   | 66               | 66               | 112            | Mixed/Stuffing |
+
+# Client by HASSH
+
+```sql
+SELECT DISTINCT
+    scn.value AS ssh_client_name,
+    hsf.fingerprint AS hassh_fingerprint
+FROM ssh_connection_events sce
+JOIN ssh_client_names scn ON
+    sce.ssh_client_name_id = scn.id
+JOIN ha_ssh_fingerprints hsf ON
+    sce.ha_ssh_fingerprint_id = hsf.id
+WHERE sce.ssh_client_name_id IS NOT NULL
+ORDER BY ssh_client_name;
+```
+
+|                ssh_client_name                 |        hassh_fingerprint         |
+|------------------------------------------------|----------------------------------|
+| SSH-2.0-AsyncSSH_2.1.0                         | fda360b1b4f4d3455cb75c6e7edb1d11 |
+| SSH-2.0-Go                                     | 2ec37a7cc8daf20b10e1ad6221061ca5 |
+| SSH-2.0-Go                                     | 4e066189c3bbeec38c99b1855113733a |
+| SSH-2.0-Go                                     | 16443846184eafde36765c9bab2f4397 |
+| SSH-2.0-Go                                     | 98ddc5604ef6a1006a2b49a58759fbe6 |
+| SSH-2.0-Go                                     | 0a07365cc01fa9fc82608ba4019af499 |
+| SSH-2.0-Go                                     | 5f904648ee8964bef0e8834012e26003 |
+| SSH-2.0-Go                                     | f1e5e9d24e5e345e8745613bde22d532 |
+| SSH-2.0-Go                                     | bf7dbf67fa9b26ee9f9deb99c49320ba |
+| SSH-2.0-Go                                     | 98f63c4d9c87edbd97ed4747fa031019 |
+| SSH-2.0-Go                                     | 01ca35584ad5a1b66cf6a9846b5b2821 |
+| SSH-2.0-Go                                     | 1507069938cc303a0479feda273ec02c |
+| SSH-2.0-OpenSSH                                | 88e4f54f942892da498676735732aec7 |
+| SSH-2.0-OpenSSH_10.0                           | c118de82e19e5384f50f9bfd36c1a5dc |
+| SSH-2.0-OpenSSH_7.9p1 Raspbian-10+deb10u2      | ec7378c1a92f5a8dde7e8b7a1ddf33d1 |
+| SSH-2.0-OpenSSH_7.9p1 Raspbian-10+deb10u2+rpt1 | ec7378c1a92f5a8dde7e8b7a1ddf33d1 |
+| SSH-2.0-OpenSSH_8.4p1 Debian-5                 | ae8bd7dd09970555aa4c6ed22adbbf56 |
+| SSH-2.0-OpenSSH_8.9p19                         | 98f63c4d9c87edbd97ed4747fa031019 |
+| SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.14      | aae6b9604f6f3356543709a376d7f657 |
+| SSH-2.0-OpenSSH_9.9                            | 1cc79c7da9b5d5eead2c60983332a556 |
+| SSH-2.0-PUTTY                                  | 57446c12547a668110aa237e5965e374 |
+| SSH-2.0-PuTTY_Release_0.83                     | 4a3e3c55af41b23589ff4c9d6aee4404 |
+| SSH-2.0-Renci.SshNet.SshClient.2025.1.0        | d055c93eb832f05741824c5d6eeb7251 |
+| SSH-2.0-libssh2_1.11.0                         | 44ac1859818d6cacfb48ec9cb230b3f0 |
+| SSH-2.0-libssh2_1.11.1                         | 19532158b559096b89b1a5f7d17175b2 |
+| SSH-2.0-libssh2_1.11.1                         | f45fb203c31069bb280067b71ed92ccb |
+| SSH-2.0-libssh2_1.11.1                         | 57e4cc8ee36c3d78f75c6a05acd55963 |
+| SSH-2.0-libssh2_1.9.0                          | 57446c12547a668110aa237e5965e374 |
+| SSH-2.0-libssh_0.11.1                          | 03a80b21afa810682a776a7d42e5e6fb |
+| SSH-2.0-libssh_0.11.1                          | 04f9d9fca3a978a7c079aa3379fd21d6 |
+| SSH-2.0-libssh_0.11.1                          | 713bd9cc935561939c02dad25af2d3de |
+| SSH-2.0-libssh_0.11.1                          | a37561952f836bcafd479cf44ccf6d52 |
+| SSH-2.0-libssh_0.11.1                          | e13ba222a14b8b916c6c32f9fd6aec5d |
+| SSH-2.0-libssh_0.11.2                          | 4ed0d5b0dc3be39c7f96ba3a3cc77895 |
+| SSH-2.0-libssh_0.9.5                           | 742ee33575d0ff88acd63dcc5529bb46 |
+| SSH-2.0-libssh_0.9.6                           | f555226df1963d1d3c09daf865abdc9a |
+| SSH-2.0-libssh_0.9.6                           | 8c95e28f1643c38e5d64511b4d499e94 |
+| SSH-2.0-paramiko_3.5.1                         | a2de0f306611e0957be704f5b0e35a82 |
+| SSH-2.0-paramiko_4.0.0                         | a2de0f306611e0957be704f5b0e35a82 |
+| SSH-2.0-russh_0.51.1                           | 1b8acd46a07d2dc9854db9ec4044c45c |

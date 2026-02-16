@@ -1,5 +1,6 @@
 project_name: fishler
 report_sizes: true
+version: 2
 
 before:
   hooks:
@@ -11,16 +12,14 @@ before:
     # - go test -race ./...
 
 builds:
-  -
-    id: default
+  - id: default
     main: ./main.go
     env: [ CGO_ENABLED=0 ]
     goos: [ linux ]
     goarch: [ amd64, arm64 ]
 
 upx:
-  -
-    ids: [ default ]
+  - ids: [ default ]
     enabled: true
     compress: best
     lzma: true
@@ -29,8 +28,7 @@ upx:
     goarch: [ amd64, arm64 ]
 
 release:
-  ids: [ default ]
-  draft: true
+  draft: false
   replace_existing_draft: true
   target_commitish: "{{ .Commit }}"
   #  discussion_category_name: General
