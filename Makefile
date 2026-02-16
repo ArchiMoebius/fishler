@@ -3,7 +3,9 @@ BUILD=$(shell git rev-parse HEAD)
 BASEDIR=./dist
 DIR=${BASEDIR}/temp
 
-LDFLAGS=-ldflags "-s -w -X main.build=${BUILD} -buildid=${BUILD}"
+BUILD_UUID=$(shell cat /proc/sys/kernel/random/uuid)
+
+LDFLAGS=-ldflags "-s -w -X 'main.build=${BUILD}' -X 'github.com/archimoebius/fishler/app.ServiceUUIDString=${BUILD_UUID}' -buildid=${BUILD}"
 GCFLAGS=-gcflags=all=-trimpath=$(shell pwd)
 ASMFLAGS=-asmflags=all=-trimpath=$(shell pwd)
 
@@ -19,7 +21,8 @@ all: linux freebsd
 freebsd: lint security docs
 	@env CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/fishler-freebsd_amd64 main.go
 
-linux: lint security docs
+#linux: lint security docs
+linux:
 	@env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/fishler-linux_amd64 main.go
 
 docs:

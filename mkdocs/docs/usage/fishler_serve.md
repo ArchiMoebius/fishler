@@ -13,38 +13,37 @@ fishler serve [flags]
 ### Options
 
 ```
-      --account string              Exclusive: An account that is valid (any password) for the server
-      --account-file string         Exclusive: A file with a list of username/password combinations that are valid for the server (new-line delimited) in the form: username password - quote if space is present in either
-      --any-account                 Any username/password combination will yield in successful authentication to the server
-      --banner string               The banner the SSH server displays (default "OpenSSH_8.8")
-      --crypto-basepath string      The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server (default "/opt/fishler/crypto")
-      --docker-disk-limit int       The amount of disk space (in MB) that each container should limit a container to (default 100)
-      --docker-hostname string      The hostname used in the docker container (default "localhost")
-      --docker-memory-limit int     The amount of memory (in MB) that each container should get when a user obtains a session (default 8)
-  -h, --help                        help for serve
-      --ip string                   The IP to listen on for SSH connections - if not set, will bind to 127.0.0.1 (default "127.0.0.1")
-      --no-account                  No username/pasword combination will every yield in successful authentication to the server
-      --password string             Exclusive: A password that is valid (any account) for the server
-      --password-file string        Exclusive: A file with a list of passwords that are valid (with any account) for the server (new-line delimited) in the form: password
-      --port int                    The port to listen on for SSH connections - if not set, will bind to a random high port (default 2222)
-      --random-sleep-count int      If non-zero, sleep this at most this many seconds before allowing authentication to continue
-      --ssh-idle-timeout duration   If a session is idle for this many seconds - terminate it
-      --ssh-max-timeout duration    Terminate the session after this many seconds - if 0 no session time limit
-  -v, --volumn stringArray          
+      --account string            Exclusive: An account that is valid (any password) for the server
+      --account-file string       Exclusive: A file with a list of username/password combinations that are valid for the server (new-line delimited) in the form: username password - quote if space is present in either
+      --any-account               Any username/password combination will yield in successful authentication to the server
+      --banner string             The banner the SSH server displays (default "OpenSSH_8.8")
+      --crypto-basepath string    The basepath to a directory which holds files: id_rsa/id_rsa.pub for the SSH server (default "/opt/fishler/crypto")
+      --docker-disk-limit int     The amount of disk space (in MB) that each container should limit a container to (default 100)
+      --docker-hostname string    The hostname used in the docker container (default "localhost")
+      --docker-memory-limit int   The amount of memory (in MB) that each container should get when a user obtains a session (default 8)
+  -h, --help                      help for serve
+      --ip string                 The IP to listen on for SSH connections - if not set, will bind to 127.0.0.1 (default "127.0.0.1")
+      --no-account                No username/pasword combination will every yield in successful authentication to the server
+      --password string           Exclusive: A password that is valid (any account) for the server
+      --password-file string      Exclusive: A file with a list of passwords that are valid (with any account) for the server (new-line delimited) in the form: password
+      --port int                  The port to listen on for SSH connections - if not set, will bind to a random high port (default 2222)
+      --random-sleep-count int    If non-zero, sleep this at most this many seconds before allowing authentication to continue
+  -v, --volumn stringArray        
 ```
 
 ### Options inherited from parent commands
 
 ```
-  -c, --config string             .fishler.yaml (default ".fishler")
-  -d, --debug                     Output debug information
-      --docker-basepath string    The path to the docker folder ./docker if run from the root of the project (default "docker")
-      --docker-imagename string   The image user for the docker container (default "fishler")
-  -l, --log-basepath string       The base filepath where logs will be stored (default "/var/log/fishler")
+  -c, --config string                  .fishler.yaml (default ".fishler")
+  -d, --debug                          Output debug information
+      --docker-basepath string         The path to the docker folder ./docker if run from the root of the project (default "docker")
+      --docker-imagename string        The image user for the docker container (default "fishler")
+  -l, --log-basepath string            The base filepath where logs will be stored (default "/var/log/fishler")
+      --uplink-server-address string   The uplink server address in the form IP:PORT
 ```
 
 ### SEE ALSO
 
 * [fishler](fishler.md)	 - SSH to Docker container
 
-###### Auto generated by spf13/cobra on 24-Dec-2023
+###### Auto generated by spf13/cobra on 16-Feb-2026

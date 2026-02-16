@@ -15,11 +15,12 @@ import (
 var Setting *setting
 
 var initial = &setting{
-	LogBasepath:     "/var/log/fishler",
-	Config:          ".fishler",
-	Debug:           false,
-	DockerImagename: "fishler",
-	DockerBasepath:  "docker",
+	LogBasepath:         "/var/log/fishler",
+	Config:              ".fishler",
+	Debug:               false,
+	DockerImagename:     "fishler",
+	DockerBasepath:      "docker",
+	UplinkServerAddress: "",
 }
 
 // Create private data struct to hold setting options.
@@ -27,11 +28,12 @@ var initial = &setting{
 // `struct` => fatih structs tag
 // `env` => environment variable name
 type setting struct {
-	LogBasepath     string `mapstructure:"log-basepath" structs:"log-basepath" env:"FISHLER_LOG_BASEPATH"`
-	Config          string `mapstructure:"config" structs:"config" env:"FISHLER_CONFIG"`
-	Debug           bool   `mapstructure:"debug" structs:"debug" env:"FISHLER_DEBUG"`
-	DockerImagename string `mapstructure:"docker-imagename" structs:"docker-imagename" env:"FISHLER_DOCKER_IMAGENAME"`
-	DockerBasepath  string `mapstructure:"docker-basepath" structs:"docker-basepath" env:"FISHLER_DOCKER_BASEPATH"`
+	LogBasepath         string `mapstructure:"log-basepath" structs:"log-basepath" env:"FISHLER_LOG_BASEPATH"`
+	Config              string `mapstructure:"config" structs:"config" env:"FISHLER_CONFIG"`
+	Debug               bool   `mapstructure:"debug" structs:"debug" env:"FISHLER_DEBUG"`
+	DockerImagename     string `mapstructure:"docker-imagename" structs:"docker-imagename" env:"FISHLER_DOCKER_IMAGENAME"`
+	DockerBasepath      string `mapstructure:"docker-basepath" structs:"docker-basepath" env:"FISHLER_DOCKER_BASEPATH"`
+	UplinkServerAddress string `mapstructure:"uplink-server-address" structs:"uplink-server-address" env:"FISHLER_UPLINK_SERVER_ADDRESS"`
 }
 
 func Load() {
@@ -68,6 +70,7 @@ func CommandInit(command *cobra.Command) error {
 	// Keep cli parameters in sync with the config struct
 	command.PersistentFlags().String("docker-imagename", initial.DockerImagename, "The image user for the docker container")
 	command.PersistentFlags().String("docker-basepath", initial.DockerBasepath, "The path to the docker folder ./docker if run from the root of the project")
+	command.PersistentFlags().String("uplink-server-address", initial.UplinkServerAddress, "The uplink server address in the form IP:PORT")
 	command.PersistentFlags().StringP("log-basepath", "l", initial.LogBasepath, "The base filepath where logs will be stored")
 	command.PersistentFlags().StringP("config", "c", initial.Config, ".fishler.yaml")
 	command.PersistentFlags().BoolP("debug", "d", initial.Debug, "Output debug information")

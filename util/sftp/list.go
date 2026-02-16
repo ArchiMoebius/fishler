@@ -7,7 +7,7 @@ import (
 )
 
 func (fs FishlerFS) Filelist(request *sftp.Request) (sftp.ListerAt, error) {
-	p, err := fs.GetDockerVolumnPath(fs, request.Filepath, false)
+	p, err := fs.GetDockerVolumnPath(fs, request.Filepath)
 	if err != nil {
 		fs.logError(request, "sftp filelist error", err)
 		return nil, sftp.ErrSSHFxNoSuchFile

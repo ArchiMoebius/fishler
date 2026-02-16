@@ -10,7 +10,7 @@ import (
 func (fs FishlerFS) Filecmd(request *sftp.Request) error {
 	fs.logInfo(request, "sftp filecmd")
 
-	p, err := fs.GetDockerVolumnPath(fs, request.Filepath, false)
+	p, err := fs.GetDockerVolumnPath(fs, request.Filepath)
 	if err != nil {
 		fs.logError(request, "sftp filecmd error", err)
 		return sftp.ErrSSHFxNoSuchFile
@@ -19,7 +19,7 @@ func (fs FishlerFS) Filecmd(request *sftp.Request) error {
 	var target string = ""
 
 	if request.Target != "" {
-		target, err = fs.GetDockerVolumnPath(fs, request.Target, false)
+		target, err = fs.GetDockerVolumnPath(fs, request.Target)
 		if err != nil {
 			fs.logError(request, "sftp filecmd error", err)
 			return sftp.ErrSSHFxOpUnsupported
@@ -51,31 +51,48 @@ func (fs FishlerFS) Filecmd(request *sftp.Request) error {
 
 		return nil
 	case "Remove":
-		dst, err := fs.GetDockerVolumnPath(fs, request.Filepath, true)
+		info, err := os.Stat(p)
 		if err != nil {
+			if os.IsNotExist(err) {
+				return sftp.ErrSSHFxNoSuchFile
+			}
 			fs.logError(request, "sftp filecmd error", err)
-			return sftp.ErrSSHFxNoSuchFile
+			return sftp.ErrSSHFxFailure
 		}
 
-		if err := os.Rename(p, dst); err != nil {
+		if info.IsDir() {
+			return sftp.ErrSSHFxFailure
+		}
+
+		if err := os.Remove(p); err != nil {
 			fs.logError(request, "sftp filecmd error", err)
 			return sftp.ErrSSHFxFailure
 		}
 
 		return sftp.ErrSSHFxOk
+
 	case "Rmdir":
-		dst, err := fs.GetDockerVolumnPath(fs, request.Filepath, true)
+
+		info, err := os.Stat(p)
 		if err != nil {
+			if os.IsNotExist(err) {
+				return sftp.ErrSSHFxNoSuchFile
+			}
 			fs.logError(request, "sftp filecmd error", err)
-			return sftp.ErrSSHFxNoSuchFile
+			return sftp.ErrSSHFxFailure
 		}
 
-		if err := os.Rename(p, dst); err != nil {
+		if !info.IsDir() {
+			return sftp.ErrSSHFxFailure
+		}
+
+		if err := os.RemoveAll(p); err != nil {
 			fs.logError(request, "sftp filecmd error", err)
 			return sftp.ErrSSHFxFailure
 		}
 
 		return sftp.ErrSSHFxOk
+
 	case "Mkdir":
 		if err := os.MkdirAll(p, 0750); err != nil {
 			fs.logError(request, "sftp filecmd error", err)
